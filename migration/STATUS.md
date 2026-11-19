@@ -11,8 +11,12 @@ Travail préparé : transaction PostgreSQL avec contrôle de révision, journal
 immuable et idempotence ; accès par propriétaire ; stockage privé ; connexion
 indépendante par Supabase ; adaptation de la PWA à Next.js.
 
-Contrôles restant à réaliser : compilation, tests existants, test SQL transactionnel
-avec ROLLBACK, import et comparaison des sauvegardes dans un environnement isolé,
+Contrôles SQL réalisés avec succès dans une transaction annulée : première écriture,
+idempotence, refus des commandes réutilisées, révision périmée, refus de réécriture
+du journal, conservation d'une version précédente, isolation des comptes et refus
+anonyme. Après ROLLBACK, aucune table Poketra ni bucket n'était présent.
+
+Contrôles restant à réaliser : compilation, tests existants, import et comparaison des sauvegardes dans un environnement isolé,
 contrôles RLS et stockage, tests de connexion et Android hors connexion.
 
 Blocages observés : accès Vercel refusé (autorisation de l'espace nécessaire) ;
