@@ -1,0 +1,15 @@
+export type SmsDraft={operator:'mvola'|'orange'|'airtel'|null;type:'income'|'expense'|'transfer'|null;amount:number|null;fee:number|null;date:string|null;reference:string|null;recipient:string|null;movement:'deposit'|'withdraw'|'send'|'receive'|null;warnings:string[]};
+const number=(s:string)=>Number(s.replace(/[\s.,\u00a0\u202f]/g,''));
+export function parseSms(raw:string):SmsDraft{
+ const text=raw.slice(0,12000),lower=text.toLowerCase(),operators=[['mvola',/mvola|telma/],['orange',/orange(?:\s+money)?/],['airtel',/airtel/]] as const,matches=operators.filter(([,r])=>r.test(lower));const operator=matches.length===1?matches[0][0]:null;
+ const outgoing=/envoy[eé]|envoi|nandefa|nalefa|retrait|retir[eé]|niala|paiement|pay[eé]/i.test(text),incoming=/re[cç]u|r[eé]ception|voaray|nandray|cr[eé]dit[eé]|d[eé]p[oô]t/i.test(text),withdraw=/retrait|retir[eé]|niala/i.test(text);
+ const deposit=/d[eé]p[oô]t/i.test(text);const type=withdraw||deposit?'transfer':outgoing&&!incoming?'expense':incoming&&!outgoing?'income':null;
+ const labelled=text.match(/(?:montant|somme|vola(?:\s+mitentina)?)\s*(?:de|:|=)?\s*([\d][\d\s\u00a0\u202f.,]*?)\s*(?:Ar(?:iary)?|MGA)\b/i);
+ const amounts=[...text.matchAll(/([\d][\d\s\u00a0\u202f.,]*?)\s*(?:Ar(?:iary)?|MGA)\b/gi)].filter(m=>{const prefix=text.slice(Math.max(0,m.index!-60),m.index!);return !/(?:solde|balance|reste|sisa|frais|sarany|co[uû]t)\s*(?:est|de|:|=)?\s*$/i.test(prefix);}).map(m=>number(m[1])).filter(n=>Number.isSafeInteger(n)&&n>0);
+ const amount=labelled?number(labelled[1]):amounts.length===1?amounts[0]:null;
+ const fees=text.match(/(?:frais|sarany|co[uû]t)\s*(?:de|:|=)?\s*([\d][\d\s\u00a0\u202f.,]*?)\s*(?:Ar(?:iary)?|MGA)\b/i);const fee=fees?number(fees[1]):null;
+ const ref=text.match(/(?:r[eé]f(?:[eé]rence)?|transaction\s*(?:id|n[°o])|id)\s*[:#=-]?\s*([A-Z0-9][A-Z0-9_-]{3,})/i)?.[1]??null;
+ const day=text.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/);let date:string|null=null;if(day){const d=day[3]+'-'+day[2].padStart(2,'0')+'-'+day[1].padStart(2,'0');if(!Number.isNaN(new Date(d+'T12:00:00Z').getTime())&&new Date(d+'T12:00:00Z').toISOString().slice(0,10)===d)date=d;}
+ const recipient=text.match(/(?:destinataire|b[eé]n[eé]ficiaire|vers|\bau\b|\bà\b)\s*[:=-]?\s*(\+?261\s*\d[\d\s]{7,12}|0[234]\d[\d\s]{6,10}|[A-ZÀ-Ÿ][a-zà-ÿ]+(?:\s+[A-ZÀ-Ÿ][a-zà-ÿ]+){0,2})/)?.[1]?.trim()??null;
+ const warnings:string[]=[];if(!operator)warnings.push('Opérateur non identifié avec certitude.');if(!type)warnings.push('Choisis le type réel de l’opération.');if(amount===null)warnings.push('Montant ambigu ou absent : saisis le montant réel.');if(fee===null)warnings.push('Frais non identifiés : vérifie leur valeur.');if(!date)warnings.push('Date non identifiée : vérifie la date proposée.');if(deposit)warnings.push('Un dépôt de ton propre argent est un transfert ; un paiement reçu d’un tiers est un revenu.');return{operator,type,movement:withdraw?'withdraw':deposit?'deposit':type==='expense'?'send':type==='income'?'receive':null,amount:Number.isSafeInteger(amount)&&Number(amount)>0?amount:null,fee:Number.isSafeInteger(fee)&&Number(fee)>=0?fee:null,date,reference:ref,recipient,warnings};
+}

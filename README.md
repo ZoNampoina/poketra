@@ -1,9 +1,11 @@
-# Poketra
+# Poketra — 1.1.1
 
-Application personnelle de gestion financière en Ariary : cinq portefeuilles, projets, budgets continus, réserve et fonctionnement hors connexion.
+PWA de finances personnelles en Ariary, hors connexion. Le moteur financier, le journal et IndexedDB sont conservés.
 
-La migration de la version existante vers un hébergement indépendant est en préparation. L'application actuelle reste la version de référence pendant les tests.
+GitHub conserve le code, Vercel héberge Next.js, Supabase gère la connexion et les données privées.
 
-Les adaptations de migration sont conservées dans la branche `migration/preparation`, sous `migration/prepared/`. Cette branche contient un travail préparatoire et ne constitue pas encore une application déployable. Le code complet de la version existante doit être repris avant compilation et validation.
+Node 24 : npm ci, npm test, npm run typecheck, npm run build, npm start.
 
-Aucune sauvegarde financière personnelle ne doit être ajoutée à ce dépôt.
+Configurer SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY côté serveur. Ne jamais publier de sauvegarde financière, de justificatif ou de fichier .env.
+
+Voir docs/MIGRATION.md pour la conservation des données et le changement d’adresse.

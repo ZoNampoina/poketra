@@ -1,0 +1,10 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {saveState,loadState} from '../lib/storage';
+import * as F from '../lib/finance';
+const clear=()=>new Promise<void>((resolve,reject)=>{const r=indexedDB.deleteDatabase('poketra-v1');r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error);});
+test('IndexedDB : enregistrement puis lecture fidèle et versionnée',async()=>{await clear();assert.equal(await loadState(),null);const state=F.initialize(F.emptyState(),{cash:50000});const saved=await saveState(state,0);assert.equal(saved.revision,1);assert.deepEqual(await loadState(),saved);});
+test('IndexedDB : deux onglets concurrents ne perdent pas une écriture',async()=>{await clear();const one=F.initialize(F.emptyState(),{cash:50000}),two=F.initialize(F.emptyState(),{cash:70000});const results=await Promise.allSettled([saveState(one,0),saveState(two,0)]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.filter(r=>r.status==='rejected').length,1);assert.equal((await loadState())!.revision,1);});
+test('IndexedDB : une ancienne révision est refusée sans modifier les soldes',async()=>{await clear();let state=F.initialize(F.emptyState(),{cash:50000});await saveState(state,0);state=F.allocate(state,F.UNASSIGNED,'e-essential',5000);await saveState(state,1);await assert.rejects(saveState(F.emptyState(),0),/autre onglet/);assert.equal(F.summary((await loadState())!.state).budget,5000);});
+test('IndexedDB : une sauvegarde incohérente est refusée avant mutation',async()=>{await clear();const s=F.demoState();await saveState(s,0);const corrupt=structuredClone(s);corrupt.operations[0].funds[0].delta+=1;await assert.rejects(saveState(corrupt,1),/équilibrées/);assert.deepEqual((await loadState())!.state,s);});
