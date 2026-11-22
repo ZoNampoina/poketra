@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as F from '../lib/finance';
+import {splitExpense} from '../lib/advanced-finance';
 import {canonical} from '../lib/models';
 import {evaluateScenario,localInsights,suggestExpenseCategory} from '../lib/decision-support';
 
@@ -94,4 +95,16 @@ test('Les repères locaux n’effectuent aucune opération et signalent les enga
   assert.ok(hints.some(h=>h.id==='commitments'&&h.severity==='attention'));
   assert.ok(hints.some(h=>h.id==='reserve'));
   assert.equal(canonical(s),before);
+});
+
+test('Une dépense ventilée entre plusieurs catégories rend la suggestion ambiguë',()=>{
+  let s=ready();
+  s=F.allocate(s,F.UNASSIGNED,'e-transport',50000);
+  s=F.allocate(s,F.UNASSIGNED,'e-free',10000);
+  for(const amount of [5000,6000])s=F.expense(s,{walletId:'cash',fundId:'e-transport',categoryId:'transport',amount,label:'Taxi'});
+  s=splitExpense(s,{walletId:'cash',amount:6000,label:'Taxi',parts:[
+    {amount:5000,categoryId:'transport',fundId:'e-transport'},
+    {amount:1000,categoryId:'free',fundId:'e-free'}
+  ]});
+  assert.equal(suggestExpenseCategory(s,'Taxi'),null);
 });
