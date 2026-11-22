@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./poketrako.css";
 
 export const metadata: Metadata = {
-  title: "Poketra — Tes finances, à ton rythme",
-  description: "Portefeuilles, projets, réserve de sécurité et budgets continus en Ariary.",
+  title: "Poketra’ko — Ton argent, tes décisions",
+  description: "Un atelier financier personnel : portefeuilles, projets, budgets continus et trésorerie en Ariary.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Poketra", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Poketra’ko", statusBarStyle: "default" },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
