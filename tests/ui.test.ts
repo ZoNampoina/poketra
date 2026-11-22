@@ -12,6 +12,7 @@ Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTM
 const {createRoot}=await import('react-dom/client');
 const {default:QuickEntry}=await import('../app/quick-entry');
 const {default:Poketra}=await import('../app/poketra');
+const {default:DecisionLab}=await import('../app/decision-lab');
 const {duplicateDraft}=await import('../app/record-detail');
 const {splitExpense}=await import('../lib/advanced-finance');
 function initial(){let s=upgrade(F.initialize(F.emptyState(),{cash:100000,mvola:200000}));s=F.allocate(s,F.UNASSIGNED,'e-essential',100000);return s;}
@@ -21,3 +22,15 @@ test('Enregistrer et nouveau : une seule opération est créée et le montant es
 test('L’application ouvre l’ancien espace sans réinitialiser les portefeuilles',async()=>{await new Promise<void>((resolve)=>{const r=indexedDB.deleteDatabase('poketra-v1');r.onsuccess=()=>resolve();});const old=F.initialize(F.emptyState(),{mvola:123456,cash:76543});await saveState(old,0);const originalFetch=globalThis.fetch;globalThis.fetch=async()=>new Response(JSON.stringify({error:'Hors connexion simulée'}),{status:503,headers:{'content-type':'application/json'}});const view=await mount(Poketra);await act(async()=>{for(let i=0;i<8;i++)await new Promise(r=>setTimeout(r,10));});assert.ok(view.container.textContent!.includes('Tes finances'));
 assert.ok(view.container.textContent!.includes('poketra’ko'));const after=(await loadState())!;assert.equal(F.summary(after.state).wallets.mvola,123456);assert.equal(F.summary(after.state).wallets.cash,76543);assert.ok(await readKV('checkpoint:before-v11'));await view.close();globalThis.fetch=originalFetch;});
 test('Dupliquer une dépense conserve le principal et les frais séparément',()=>{let s=initial();s=F.allocate(s,F.UNASSIGNED,'e-financial',10000);s=splitExpense(s,{walletId:'cash',amount:5000,parts:[{amount:5000,categoryId:'essential',fundId:'e-essential'}],fee:1000});const draft=duplicateDraft(s,s.operations.at(-1)!.id);assert.equal(draft.amount,5000);assert.equal(draft.fee,1000);assert.equal(draft.parts,undefined);});
+
+test('Atelier de décisions : affichage local et journal inchangé',async()=>{
+ const s=initial(),original=JSON.stringify(s);
+ let started=false;
+ const view=await mount(DecisionLab,{s,onDraft:()=>{started=true;}});
+ assert.ok(view.container.textContent!.includes('Mon scénario'));
+ assert.ok(view.container.textContent!.includes('Disponible après cet achat hypothétique'));
+ assert.ok(view.container.textContent!.includes('Réinitialiser la simulation'));
+ assert.equal(started,false);
+ assert.equal(JSON.stringify(s),original);
+ await view.close();
+});
