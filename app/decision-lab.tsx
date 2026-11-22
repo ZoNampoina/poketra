@@ -1,6 +1,6 @@
 'use client';
 import {useMemo,useState} from 'react';
-import {ArrowDownRight,CalendarClock,CheckCircle2,Compass,Lightbulb,ShieldCheck,SlidersHorizontal,TriangleAlert} from 'lucide-react';
+import {ArrowDownRight,CalendarClock,CheckCircle2,Lightbulb,ShieldCheck,SlidersHorizontal,TriangleAlert} from 'lucide-react';
 import type {State} from '@/lib/finance';
 import {displayMoney} from '@/lib/display';
 import {evaluateScenario,localInsights,suggestExpenseCategory,type Horizon} from '@/lib/decision-support';
@@ -22,11 +22,6 @@ export default function DecisionLab({s,onDraft}:Props){
   const category=useMemo(()=>suggestExpenseCategory(s,label),[s,label]);
   const money=(value:number)=>displayMoney(s,value);
   return <div className="pk-lab">
-    <section className="pk-lab-hero">
-      <div className="pk-lab-hero-top"><span><Compass size={18}/> ATELIER DE DÉCISION</span><span>SIMULATION LOCALE</span></div>
-      <h2>Avant de dépenser, <em>regarde plus loin.</em></h2>
-      <p>Pose une hypothèse, compare son impact sur ta marge de manœuvre et garde la main sur tes décisions. Aucun montant simulé n'est enregistré.</p>
-    </section>
     <div className="pk-lab-columns">
       <section className="card pk-lab-card" aria-labelledby="pk-lab-title">
         <div className="pk-lab-title"><SlidersHorizontal size={20}/><h2 id="pk-lab-title">Mon scénario</h2></div>
@@ -61,11 +56,11 @@ export default function DecisionLab({s,onDraft}:Props){
         <section className="card pk-lab-card">
           <div className="pk-lab-title"><Lightbulb size={20}/><h2>Repères utiles</h2></div>
           {hints.length?hints.map(h=><div className="pk-lab-hint" key={h.id}>{h.severity==='attention'?<TriangleAlert size={19}/>:<CheckCircle2 size={19}/>}<div><strong>{h.title}</strong><p>{h.description}</p></div></div>):<p className="muted">Aucun point d'attention détecté à partir des paramètres et échéances enregistrés.</p>}
-          <p className="pk-lab-small">Ces repères sont calculés sur cet appareil. Ils ne créent aucune opération et ne déclenchent aucun paiement.</p>
+          
         </section>
         <section className="card pk-lab-card">
           <div className="pk-lab-title"><CalendarClock size={20}/><h2>Assistant de catégorisation</h2></div>
-          <p className="muted">Retrouve une catégorie utilisée au moins deux fois pour un même libellé. Aucun texte n'est transmis à un service externe.</p>
+          <p className="muted">Proposition locale après deux dépenses semblables.</p>
           <label className="pk-lab-category-label">Libellé d'une dépense
             <input aria-label="Libellé à analyser" value={label} maxLength={150} onChange={e=>setLabel(e.target.value)} placeholder="Ex. Taxi, courses..."/>
           </label>
