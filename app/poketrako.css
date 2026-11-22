@@ -163,3 +163,46 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){
   .wallet-mini,.envelope,.project-card,.wallet-full{transition:none}
 }
+
+
+/* Atelier de décision — extension non destructive */
+.pk-lab{display:flex;flex-direction:column;gap:20px}
+.pk-lab-hero{position:relative;overflow:hidden;background:#1c3549;color:#fff4e8;border-radius:18px;padding:29px 35px}
+.pk-lab-hero:after{content:"";position:absolute;width:250px;height:250px;border-radius:50%;border:1px solid #ffffff20;box-shadow:0 0 0 45px #ffffff08,0 0 0 88px #ffffff04;right:-80px;top:-130px;pointer-events:none}
+.pk-lab-hero-top{display:flex;justify-content:space-between;gap:20px;align-items:center;color:#ebb18d;font-size:10px;font-weight:700;letter-spacing:1.4px;margin-bottom:15px}
+.pk-lab-hero-top span:first-child{display:inline-flex;align-items:center;gap:8px}
+.pk-lab-hero h2{font-size:clamp(23px,2.7vw,34px);font-weight:500;line-height:1.2}
+.pk-lab-hero h2 em{color:#e9a37c}
+.pk-lab-hero p{font-size:13px;color:#b8cbd5;line-height:1.7;max-width:690px;margin-top:12px}
+.pk-lab-columns{display:grid;grid-template-columns:minmax(0,1.27fr) minmax(280px,.73fr);gap:20px;align-items:start}
+.pk-lab-side{display:flex;flex-direction:column;gap:20px}
+.pk-lab-card{padding:26px;border-radius:16px}
+.pk-lab-title{display:flex;align-items:center;gap:10px;margin-bottom:20px;color:var(--ink)}
+.pk-lab-title>svg{color:#d67650}
+.pk-lab-title h2{font-size:21px;font-weight:500}
+.pk-lab-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:15px}
+.pk-lab-fields label{display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.4;color:var(--muted)}
+.pk-lab-fields label:last-child{grid-column:1/-1}
+.pk-lab-fields input,.pk-lab-fields select,.pk-lab-category-label input{background:transparent;color:var(--ink);border:1px solid var(--border);border-radius:9px;width:100%;min-width:0}
+.pk-lab-results{display:grid;gap:0;border-top:1px solid var(--border);margin-top:18px}
+.pk-lab-result{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:14px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.pk-lab-result strong{color:var(--ink);font-size:17px;white-space:nowrap;font-weight:650;text-align:right}
+.pk-lab-result-main strong{color:#bb6646;font-size:23px}
+.pk-lab-warning strong{color:#bf4d3b}
+.pk-lab-disclaimer{margin-top:18px;display:flex;gap:10px;align-items:flex-start;line-height:1.65;font-size:11px;color:var(--muted)}
+.pk-lab-disclaimer svg{flex-shrink:0;color:#be7152}
+.pk-lab-hint{display:flex;gap:11px;padding:15px 0;border-top:1px solid var(--border)}
+.pk-lab-hint>svg{flex-shrink:0;color:#b07a54}
+.pk-lab-hint strong{font-size:12px;color:var(--ink)}
+.pk-lab-hint p,.pk-lab-small{font-size:11px;line-height:1.7;color:var(--muted);margin-top:5px}
+.pk-lab-category-label{display:block;margin:17px 0;font-size:12px;color:var(--muted)}
+.pk-lab-category-label input{display:block;margin-top:9px}
+.pk-lab-category .button{margin-top:11px;white-space:normal;text-align:center}
+.pk-lab .muted{font-size:12px;line-height:1.65}
+[data-theme=dark] .pk-lab-hero{background:#233e51}
+[data-theme=dark] .pk-lab-result-main strong{color:#f4a17b}
+[data-theme=dark] .pk-lab-warning strong{color:#f5a18f}
+[data-theme=dark] .pk-lab-fields input,[data-theme=dark] .pk-lab-fields select,[data-theme=dark] .pk-lab-category-label input{background:#223748}
+@media(max-width:1100px){.pk-lab-columns{grid-template-columns:1fr}.pk-lab-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.pk-lab-hero{padding:26px 23px}.pk-lab-hero-top{font-size:9px}.pk-lab-side{display:flex}.pk-lab-card{padding:20px}.pk-lab-fields{grid-template-columns:1fr}.pk-lab-fields label:last-child{grid-column:auto}.pk-lab-result strong{font-size:15px}.pk-lab-result-main strong{font-size:20px}}
+@media(max-width:385px){.pk-lab-result{align-items:flex-start;flex-direction:column;gap:5px}.pk-lab-result strong{text-align:left}}
