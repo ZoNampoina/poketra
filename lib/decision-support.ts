@@ -94,9 +94,8 @@ export function suggestExpenseCategory(state: F.State, proposedLabel: string): C
   if (sought.length < 3) return null;
   const matches = F.activeOperations(state)
     .filter(o => o.kind === 'expense' && normalize(o.label) === sought)
-    .map(o => [...new Set(o.expenses.filter(e => e.role !== 'fee').map(e => e.categoryId))])
-    .filter(ids => ids.length === 1);
-  if (matches.length < 2) return null;
+    .map(o => [...new Set(o.expenses.filter(e => e.role !== 'fee').map(e => e.categoryId))]);
+  if (matches.length < 2 || matches.some(ids => ids.length !== 1)) return null;
   const ids = new Set(matches.map(m => m[0]));
   if (ids.size !== 1) return null;
   const categoryId = matches[0][0];
