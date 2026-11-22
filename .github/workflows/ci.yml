@@ -1,4 +1,4 @@
-name: Validate Poketra
+name: Validate Poketra’ko
 on:
   push:
     branches: [main]
