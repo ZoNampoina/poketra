@@ -29,6 +29,12 @@ assert.ok(view.container.querySelector('button[aria-label="Compte et sauvegardes
 assert.ok(view.container.querySelector('button[aria-label="Afficher l\'aide sur cette page"]'));
 assert.ok(view.container.textContent!.includes('Agenda financier'));
 assert.ok(view.container.textContent!.includes('Conversion de devises'));
+const mobileNav=view.container.querySelector('nav[aria-label="Navigation mobile principale"]')!;
+assert.ok(mobileNav,'La navigation Android existe');
+assert.deepEqual([...mobileNav.querySelectorAll('button')].map(b=>b.textContent?.trim()),['Accueil','Opérations','Saisir','Agenda','Menu']);
+assert.equal(mobileNav.querySelector('button[aria-label="Saisir une opération"]')?.hasAttribute('disabled'),false);
+assert.ok(view.container.querySelector('button[aria-label="Fermer le menu"]'));
+assert.ok(view.container.querySelector('button[aria-label="Compte et sauvegardes"]'));
 assert.ok(view.container.textContent!.includes('poketra’ko'));const after=(await loadState())!;assert.equal(F.summary(after.state).wallets.mvola,123456);assert.equal(F.summary(after.state).wallets.cash,76543);assert.ok(await readKV('checkpoint:before-v11'));await view.close();globalThis.fetch=originalFetch;});
 test('Dupliquer une dépense conserve le principal et les frais séparément',()=>{let s=initial();s=F.allocate(s,F.UNASSIGNED,'e-financial',10000);s=splitExpense(s,{walletId:'cash',amount:5000,parts:[{amount:5000,categoryId:'essential',fundId:'e-essential'}],fee:1000});const draft=duplicateDraft(s,s.operations.at(-1)!.id);assert.equal(draft.amount,5000);assert.equal(draft.fee,1000);assert.equal(draft.parts,undefined);});
 
@@ -68,4 +74,20 @@ test('Agenda et convertisseur : rendu en lecture seule avec anciens soldes',asyn
   await fx.close();
   assert.equal(target,'');
   assert.equal(JSON.stringify(s),snapshot);
+});
+
+test('Styles Android : confort tactile, marges système et formulaires sans zoom',async()=>{
+ const fs=await import('node:fs/promises');
+ const css=await fs.readFile('app/android.css','utf8');
+ const layout=await fs.readFile('app/layout.tsx','utf8');
+ assert.ok(layout.includes('import "./android.css"'));
+ assert.ok(layout.includes('viewportFit: "cover"'));
+ assert.match(css,/@media\s*\(max-width:760px\)/);
+ assert.match(css,/safe-area-inset-bottom/);
+ assert.match(css,/\.pk-bottom-nav/);
+ assert.match(css,/\.floating-add\{display:none!important\}/);
+ assert.match(css,/font-size:16px!important/);
+ assert.match(css,/\.modal-content/);
+ assert.match(css,/\.tx-number strong/);
+ assert.match(css,/\.pk-fx-currency-row/);
 });
