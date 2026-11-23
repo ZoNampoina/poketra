@@ -39,6 +39,9 @@ assert.equal(mobileNav.querySelector('[aria-label="Afficher toutes les rubriques
 assert.ok(view.container.querySelector('button[aria-label^="État de synchronisation"]'),'L’accès au compte par synchronisation reste présent');
 assert.equal(view.container.querySelector('button[aria-label="Compte et sauvegardes"]'),null);
 assert.ok(view.container.textContent!.includes('poketra’ko'));
+assert.ok(view.container.textContent!.includes('SOLDE TOTAL'));
+assert.ok(!view.container.textContent!.includes('Le prochain revenu n’a pas besoin d’une date'));
+assert.ok(!view.container.textContent!.includes('Un mouvement à noter ?'));
 await act(async()=>{(view.container.querySelector('button[aria-label="Ouvrir le menu"]') as HTMLButtonElement).click();});
 assert.ok(view.container.querySelector('.sidebar.open'),'Menu Android ouvert');
 await act(async()=>{(view.container.querySelector('button[aria-label="Fermer le menu"]') as HTMLButtonElement).click();});
@@ -95,6 +98,14 @@ test('Styles Android : confort tactile, marges système et formulaires sans zoom
  const css=await fs.readFile('app/android.css','utf8');
  const layout=await fs.readFile('app/layout.tsx','utf8');
  assert.ok(layout.includes('import "./android.css"'));
+ assert.ok(layout.includes('import "./refinement.css"'));
+ const refinement=await fs.readFile('app/refinement.css','utf8');
+ assert.match(refinement,/\.app-shell \.balance-card/);
+ assert.match(refinement,/\.app-shell \.balance-card:after\{display:none/);
+ assert.match(refinement,/\.app-shell \.sidebar nav button:before\{content:none;display:none/);
+ assert.match(refinement,/\.app-shell \.pk-home-actions\{display:none/);
+ assert.match(refinement,/\.app-shell \.pk-bottom-nav/);
+ assert.match(refinement,/\[data-theme=dark\] \.app-shell \.card/);;
  assert.ok(layout.includes('viewportFit: "cover"'));
  assert.match(css,/@media\s*\(max-width:760px\)/);
  assert.match(css,/safe-area-inset-bottom/);
