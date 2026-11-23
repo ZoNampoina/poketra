@@ -19,7 +19,7 @@ const {createRoot}=await import('react-dom/client');
 const {default:ImportWizard}=await import('../app/import/import-wizard');
 async function clear(){await new Promise<void>((resolve,reject)=>{const r=indexedDB.deleteDatabase('poketra-v1');r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error);});}
 async function mount(){
- const container=document.createElement('div');document.body.append(container);
+ const container=document.createElement('div');(document.body as any).append(container);
  const root=createRoot(container);
  await act(async()=>{root.render(createElement(ImportWizard));});
  await act(async()=>{await new Promise(r=>setTimeout(r,20));});
@@ -35,7 +35,7 @@ async function choose(container:HTMLElement,data:string,name='ancien-poketra.jso
  assert.ok(input,'Le sélecteur de fichier est affiché');
  const file=new window.File([data],name,{type:'application/json'});
  Object.defineProperty(input,'files',{configurable:true,value:[file]});
- await act(async()=>{input.dispatchEvent(new window.Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,25));});
+ await act(async()=>{input.dispatchEvent(new window.Event('change',{bubbles:true}) as any);await new Promise(r=>setTimeout(r,25));});
 }
 
 test('Import Android : cliquer sur le JSON affiche un résumé, puis restaure après confirmation',async()=>{
