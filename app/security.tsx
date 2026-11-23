@@ -16,6 +16,60 @@ export default function Security({s,commit,busy,onLock,onSync}:{s:F.State;commit
  async function run(fn:()=>Promise<void>){if(working||busy)return;setWorking(true);setError('');setMessage('');try{await fn();await refresh();}catch(e){setError((e as Error).message);}finally{setWorking(false);}}
  async function download(text:string,name:string){const {download}=await import('@/lib/exports');download(text,name);}
  async function exportFull(){await run(async()=>{await checkpointState('export');const text=await fullBackup(s),restored=await validatePortableBackup(text);if(canonical(restored.state)!==canonical(s))throw new Error('La sauvegarde ne correspond pas à l’état actuel.');await download(text,'poketra-sauvegarde-'+F.today()+'.json');setMessage('Sauvegarde complète générée et sa restauration vérifiée. Conserve le fichier téléchargé.');});}
+
+ async function publishRestoration(){
+  const outbox=await readKV<Outbox>('outbox');
+  if(!outbox)return 'La sauvegarde est déjà confirmée ou aucune écriture ne reste en attente.';
+  const response=await fetch('/api/sync',{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok)throw new Error('Connexion au serveur indisponible. La restauration locale reste disponible.');
+  const remote=await response.json() as {revision:number;state:F.State|null;ownerId:string};
+  if(!remote.state)throw new Error('Aucun historique serveur à remplacer. La synchronisation ordinaire prendra le relais.');
+  if(canonical(remote.state)===canonical(outbox.state)){await onSync();return 'La sauvegarde est déjà présente sur le serveur.';}
+  if(!Number.isSafeInteger(remote.revision)||remote.state.operations.length!==1||remote.state.operations[0]?.kind!=='opening')
+    throw new Error('Le serveur contient d’autres opérations. Il n’a pas été modifié : examine le conflit avant une nouvelle tentative.');
+  const result=await fetch('/api/restore-initial',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    confirmation:'restore-initial-only',mutationId:outbox.mutationId,expectedRemote:remote.revision,state:outbox.state
+  })});
+  const body=await result.json() as {error?:string;conflict?:boolean;revision?:number;state?:F.State;ownerId?:string;updatedAt?:string};
+  if(!result.ok||!body.state||!body.ownerId||!Number.isSafeInteger(body.revision))
+    throw new Error(body.error??'Restauration serveur non confirmée. Les données restent enregistrées sur cet appareil.');
+  await acknowledgeSync(outbox,{revision:body.revision!,state:body.state,ownerId:body.ownerId,updatedAt:body.updatedAt??new Date().toISOString()});
+  await onSync();
+  return 'Sauvegarde synchronisée avec le compte. L’ancienne version serveur est archivée.';
+ }
+ async function applyImport(){
+  if(!pending||!plan||plan.mode==='unchanged')throw new Error('Sélectionne une sauvegarde contenant de nouvelles données.');
+  if(plan.mode==='replace'&&!allowReplace)throw new Error('Confirme d’abord le remplacement de cet espace.');
+  const present=await readKV<Stored>('workspace');
+  if(present){
+    await checkpointState('before-import');
+    if(plan.mode==='replace'){
+      const copy=await fullBackup(s);
+      const verified=await validatePortableBackup(copy);
+      if(canonical(verified.state)!==canonical(s))throw new Error('La copie de sécurité actuelle n’a pas pu être vérifiée.');
+      await download(copy,'poketrako-avant-restauration-'+F.today()+'.json');
+    }
+  }
+  await stageBackupFiles(pending.files);
+  const accepted=await commit(plan.state,'Sauvegarde importée et journal vérifié');
+  if(!accepted)throw new Error('Enregistrement refusé : vérifie le message principal et réessaie sans effacer les données.');
+  const saved=await readKV<Stored>('workspace');
+  if(!saved||canonical(saved.state)!==canonical(upgrade(plan.state)))
+    throw new Error('Vérification du journal restauré impossible. Ne supprime pas ta sauvegarde.');
+  const count=saved.state.operations.length;
+  setPending(null);setPlan(null);setAllowReplace(false);
+  setMessage(count+' opérations importées et vérifiées sur cet appareil.');
+  if(publishServer){
+    try{
+      const confirmation=await publishRestoration();
+      setMessage(count+' opérations importées et vérifiées. '+confirmation);
+    }catch(e){
+      setMessage(count+' opérations importées localement. La synchronisation serveur reste à vérifier.');
+      setError((e as Error).message);
+    }
+  }
+  setPublishServer(false);
+ }
  return <div className="settings-grid security-grid"><div className="wide"><Account onSignedIn={onSync}/></div><section className="card"><h2><ShieldCheck size={20}/>Sauvegardes et récupération</h2><p className="muted">La sauvegarde complète conserve le journal, les préférences et les justificatifs. Elle est distincte des rapports CSV, Excel et PDF.</p><div className="button-row"><button className="button primary" disabled={working||busy} onClick={exportFull}><Download size={16}/>Sauvegarde complète</button><label className="button secondary file-button"><Upload size={16}/>Choisir une sauvegarde<input type="file" hidden accept="application/json,.json" disabled={working||busy} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;e.currentTarget.value='';setPending(null);setPlan(null);setAllowReplace(false);setPublishServer(false);await run(async()=>{const parsed=await validatePortableBackup(await f.text());const review=planRestore(s,parsed.state);setPending(parsed);setPlan(review);setMessage('Sauvegarde analysée : '+review.importedOperations+' opérations. Vérifie le récapitulatif ci-dessous.');});}}/></label><button className="button secondary" disabled={working||busy} onClick={()=>run(async()=>{await checkpointState();setMessage('Point de récupération local créé et vérifié.');})}>Créer un point local</button></div><p className="form-help">Le fichier JSON exporté est en clair. Garde-le dans un endroit privé. Les sauvegardes locales seules ne protègent pas d’une perte du téléphone.</p>{(error||message)&&<div className="pk-import-feedback" aria-live="polite">{message&&<p className="notice" role="status"><Check size={17}/>{message}</p>}{error&&<p className="form-error" role="alert">{error}</p>}</div>}
  {pending&&plan&&<div className="restore-review pk-import-review" aria-label="Récapitulatif de la sauvegarde">
  <h3>Vérifier la sauvegarde avant import</h3>
