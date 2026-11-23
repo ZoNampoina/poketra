@@ -35,7 +35,15 @@ assert.deepEqual([...mobileNav.querySelectorAll('button')].map(b=>b.textContent?
 assert.equal(mobileNav.querySelector('button[aria-label="Saisir une opération"]')?.hasAttribute('disabled'),false);
 assert.ok(view.container.querySelector('button[aria-label="Fermer le menu"]'));
 assert.ok(view.container.querySelector('button[aria-label="Compte et sauvegardes"]'));
-assert.ok(view.container.textContent!.includes('poketra’ko'));const after=(await loadState())!;assert.equal(F.summary(after.state).wallets.mvola,123456);assert.equal(F.summary(after.state).wallets.cash,76543);assert.ok(await readKV('checkpoint:before-v11'));await view.close();globalThis.fetch=originalFetch;});
+assert.ok(view.container.textContent!.includes('poketra’ko'));
+await act(async()=>{(mobileNav.querySelector('button[aria-label="Afficher toutes les rubriques"]') as HTMLButtonElement).click();});
+assert.ok(view.container.querySelector('.sidebar.open'),'Menu Android ouvert');
+await act(async()=>{(view.container.querySelector('button[aria-label="Fermer le menu"]') as HTMLButtonElement).click();});
+assert.ok(!view.container.querySelector('.sidebar.open'),'Menu Android fermé');
+await act(async()=>{(mobileNav.querySelector('button[aria-label="Saisir une opération"]') as HTMLButtonElement).click();});
+assert.ok(view.container.querySelector('[role="dialog"]'),'Saisie Android ouverte');
+await act(async()=>{(view.container.querySelector('button[aria-label="Fermer"]') as HTMLButtonElement).click();});
+const after=(await loadState())!;assert.equal(F.summary(after.state).wallets.mvola,123456);assert.equal(F.summary(after.state).wallets.cash,76543);assert.ok(await readKV('checkpoint:before-v11'));await view.close();globalThis.fetch=originalFetch;});
 test('Dupliquer une dépense conserve le principal et les frais séparément',()=>{let s=initial();s=F.allocate(s,F.UNASSIGNED,'e-financial',10000);s=splitExpense(s,{walletId:'cash',amount:5000,parts:[{amount:5000,categoryId:'essential',fundId:'e-essential'}],fee:1000});const draft=duplicateDraft(s,s.operations.at(-1)!.id);assert.equal(draft.amount,5000);assert.equal(draft.fee,1000);assert.equal(draft.parts,undefined);});
 
 test('Atelier de décisions : affichage local et journal inchangé',async()=>{
