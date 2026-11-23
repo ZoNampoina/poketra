@@ -23,7 +23,6 @@
   .topbar .status-chip{display:flex;max-width:96px;min-height:38px;min-width:36px;align-items:center;justify-content:center;gap:6px;font-size:11px;padding:7px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .topbar .status-chip>i{width:7px;height:7px;min-width:7px}
   .topbar .status-chip .pk-sync-copy{overflow:hidden;text-overflow:ellipsis}
-  .topbar .pk-account-avatar{display:inline-flex;min-width:39px;width:39px;height:39px;border-radius:50%;background:#f5ded0;color:#834529;font-size:12px}
   .topbar .status-chip.pk-sync-error,.topbar .status-chip.pk-sync-conflict{background:#fff0df;color:#a75a30;border-color:#e7c49d}
   .topbar .status-chip.pk-sync-error>i,.topbar .status-chip.pk-sync-conflict>i{background:#cf7d43}
   .sidebar{
@@ -52,7 +51,7 @@
   .pk-mobile-only-action:hover{background:#2d4658}
   .sidebar-backdrop{background:#0b1b27b0}
   .pk-bottom-nav{
-    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;
     position:fixed;bottom:0;left:0;right:0;z-index:20;
     padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
     min-height:calc(68px + env(safe-area-inset-bottom));
@@ -193,10 +192,8 @@
 }
 @media (max-width:400px){
   .pk-mobile-brand{font-size:16px}
-  .topbar .status-chip{min-width:38px;max-width:38px;padding:7px}
-  .topbar .status-chip .pk-sync-copy{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+  .topbar .status-chip{min-width:38px;max-width:96px;padding:7px}
   .topbar .icon-button{min-width:42px;min-height:44px}
-  .topbar .pk-account-avatar{min-width:37px;width:37px;height:37px}
   .workspace main{padding:15px 12px calc(95px + env(safe-area-inset-bottom))}
   .pk-bottom-nav>button{font-size:9px}
   .pk-bottom-nav .pk-nav-add-symbol{width:39px;height:34px}
@@ -220,7 +217,6 @@
 [data-theme=dark] .pk-bottom-nav>button.active{color:#ffa37d}
 [data-theme=dark] .pk-bottom-nav .pk-nav-add-symbol{background:#e68c63;color:#182d3d}
 [data-theme=dark] .topbar{background:#1a3040f4}
-[data-theme=dark] .topbar .pk-account-avatar{background:#4c5560;color:#ffbe9e}
 [data-theme=dark] .quick-submit{background:#1c3344}
 [data-theme=dark] .topbar .status-chip.pk-sync-error,
 [data-theme=dark] .topbar .status-chip.pk-sync-conflict{background:#524439;color:#ffc79f;border-color:#7b5f4d}

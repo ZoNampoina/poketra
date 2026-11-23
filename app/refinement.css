@@ -1,0 +1,223 @@
+/* Poketra’ko — langage visuel éditorial et discret.
+   La navigation, les données et les états de synchronisation gardent priorité sur la décoration.
+   Les couleurs signalant une opération ou un état ne sont jamais effacées. */
+:root{
+  --pk-paper:#faf9f6;
+  --pk-sheet:#fffefb;
+  --pk-line:#e8e5df;
+  --pk-quiet:#eef0ed;
+  --pk-petrol:#213e50;
+  --pk-coral:#c76b48;
+}
+body{background:var(--bg);}
+
+/* Une surface neutre, des bordures très fines, pas d'ombres systématiques. */
+.app-shell .card,
+.app-shell .envelope,
+.app-shell .project-card,
+.app-shell .wallet-full,
+.app-shell .history-card,
+.app-shell .pk-agenda-main,
+.app-shell .pk-agenda-events,
+.app-shell .pk-fx-card{
+  background:var(--pk-sheet);
+  border:1px solid var(--pk-line);
+  box-shadow:none;
+  border-radius:12px;
+}
+.app-shell .card:hover,
+.app-shell .envelope:hover,
+.app-shell .project-card:hover,
+.app-shell .wallet-full:hover{
+  box-shadow:none;
+}
+.app-shell .button.primary{box-shadow:none;border-radius:9px;}
+.app-shell .button.secondary{background:transparent;border-color:var(--pk-line);}
+.app-shell .button.secondary:hover{background:#f3f0e9;}
+.app-shell .button,
+.app-shell .link{transition:background-color .15s,border-color .15s,color .15s;}
+.app-shell .page-heading{margin-bottom:19px;}
+.app-shell .page-heading h1{font-size:clamp(27px,2.4vw,34px);line-height:1.18;letter-spacing:-.8px;}
+.app-shell .section-title{margin-bottom:14px;}
+.app-shell .section-title h2{font-size:calc(15px * var(--text-scale,1));font-weight:650;letter-spacing:-.25px;}
+.app-shell .metric{margin:19px 0 17px;letter-spacing:-.7px;}
+.app-shell .soft-icon,.app-shell .soft-icon.sand{
+  background:transparent;
+  color:#ae694d;
+  width:28px;height:28px;border-radius:7px;
+}
+.app-shell .progress{height:5px;background:#e9e6e0;}
+.app-shell .progress>span{background:#bd846b;}
+.app-shell .card-title .tag{font-size:10px;letter-spacing:0;}
+
+/* Navigation latérale : plus de numérotation ni de marqueurs purement décoratifs. */
+.app-shell .sidebar{width:240px;padding:24px 13px 17px;background:#172e3e;box-shadow:none;border-right:0;}
+.app-shell .workspace{margin-left:240px;}
+.app-shell .sidebar .brand{margin:0 11px 27px;font-size:calc(26px * var(--text-scale,1));}
+.app-shell .sidebar .brand-icon{border-radius:10px;background:#dd936f;transform:none;box-shadow:none;}
+.app-shell .sidebar .brand-icon svg{transform:none;}
+.app-shell .sidebar .brand-dot{font-style:normal;}
+.app-shell .sidebar .space-label{display:none;}
+.app-shell .sidebar nav{gap:2px;}
+.app-shell .sidebar nav button:before{content:none;display:none;}
+.app-shell .sidebar nav button,.app-shell .sidebar .settings-link{
+  padding:10px 12px;
+  border-radius:7px;
+  min-height:41px;
+  font-size:calc(12px * var(--text-scale,1));
+}
+.app-shell .sidebar nav button.active,.app-shell .sidebar .settings-link.active{
+  background:#2c4759;
+  box-shadow:inset 2px 0 #e3a07e;
+}
+.app-shell .sidebar nav button:hover,.app-shell .sidebar .settings-link:hover{background:#2a4658;}
+.app-shell .sidebar-bottom{padding-top:16px;}
+.app-shell .sidebar .profile{padding-top:12px;}
+
+/* Barre supérieure limitée aux commandes globales et à l'état du compte. */
+.app-shell .topbar{
+  height:60px;background:#faf9f6ed;
+  border-bottom:1px solid var(--pk-line);
+  backdrop-filter:blur(10px);
+}
+.app-shell .topbar .breadcrumb{font-size:11px;color:#82909b;}
+.app-shell .topbar .breadcrumb strong{font-weight:600;}
+.app-shell .topbar-right{gap:10px!important;}
+.app-shell .status-chip{box-shadow:none;min-height:36px;}
+.app-shell .workspace main{padding:27px 36px 35px;}
+.app-shell .app-footer{opacity:.75;}
+
+/* Une seule surface d'accent, réservée au solde principal. */
+.app-shell .balance-card{
+  background:var(--pk-petrol);
+  color:#fffaf2;
+  border:1px solid #213e50;
+  box-shadow:none;
+  border-radius:13px;
+}
+.app-shell .balance-card:after{display:none;content:none;}
+.app-shell .balance-top{color:#bed0d5;letter-spacing:1.1px;}
+.app-shell .balance-top svg{opacity:.65;}
+.app-shell .balance-value{color:#fff8ef;font-weight:650;font-size:calc(35px * var(--text-scale,1));letter-spacing:-.7px;margin-top:22px;}
+.app-shell .balance-value>span{color:#d8c9be;font-size:calc(18px * var(--text-scale,1));}
+.app-shell .balance-separator{background:#ffffff25;margin:23px 0 15px;}
+.app-shell .balance-bottom span{color:#b9ccd3;}
+.app-shell .balance-bottom strong{color:#fff8ee;font-weight:600;}
+.app-shell .circle-arrow{display:none;}
+.app-shell .dashboard-v11{gap:14px;}
+.app-shell .dashboard-v11 .treasury-strip{
+  padding:14px 18px;
+  background:#f0f2ef;
+  border:1px solid #e4e7e1;
+  border-radius:11px;
+  box-shadow:none;
+}
+.app-shell .treasury-strip>div{border-color:#dfe3dc;gap:8px;}
+.app-shell .treasury-strip>div>div>span{color:#677885;}
+.app-shell .treasury-strip strong{color:#253d4c;font-size:calc(15px * var(--text-scale,1));}
+.app-shell .mini-icon,.app-shell .mini-icon.amber,.app-shell .mini-icon.gray{
+  color:#718a90;
+  background:transparent;
+  width:24px;height:24px;
+}
+.app-shell .wallet-mini{
+  background:#f6f6f3;
+  border:1px solid transparent;
+  border-radius:9px;
+  padding:12px 10px;
+  box-shadow:none;
+  transition:background-color .15s,border-color .15s;
+}
+.app-shell .wallet-mini:hover{transform:none;background:#f0f2ee;border-color:#dce3dc;}
+.app-shell .wallet-mini>span:nth-child(2){margin-top:9px;font-size:calc(11px * var(--text-scale,1));color:#687c87;}
+.app-shell .wallet-mini>strong{font-size:calc(13px * var(--text-scale,1));letter-spacing:-.2px;}
+.app-shell .wallet-logo{border-radius:8px;}
+.app-shell .tx{padding:12px 0;border-color:#ebeae5;}
+.app-shell .tx-icon{border-radius:9px;}
+.app-shell .tx-description strong{font-size:calc(12px * var(--text-scale,1));}
+.app-shell .quick-actions{padding:17px;}
+.app-shell .quick-actions button{
+  background:transparent;border:1px solid var(--pk-line);
+  border-radius:9px;padding:12px;
+}
+.app-shell .quick-actions button:hover{background:#f5f4f0;border-color:#d5d9d4;}
+.app-shell .quick-icon,.app-shell .quick-icon.amber{background:#f2f1ed;color:#b47453;}
+.app-shell .quick-actions strong{margin-top:7px;}
+.app-shell .quick-actions small{margin-top:3px;color:#73838c;}
+.app-shell .favorites-strip{gap:8px;}
+.app-shell .favorites-strip:empty{display:none;}
+.app-shell .pk-home-actions{margin-bottom:15px;gap:8px;}
+.app-shell .pk-home-actions .button{box-shadow:none;}
+.app-shell .pill-button{background:transparent;border-color:#dadfd9;color:#a76345;}
+.app-shell .pk-agenda-day.selected{border-radius:8px;}
+.app-shell .pk-context-help{box-shadow:none;}
+
+/* Les petits écrans privilégient chiffres, commandes et lisibilité tactile. */
+@media(max-width:760px){
+  .app-shell .sidebar{width:min(310px,90vw);padding:calc(15px + env(safe-area-inset-top)) 14px calc(9px + env(safe-area-inset-bottom));}
+  .app-shell .workspace{margin-left:0;}
+  .app-shell .topbar{
+    height:calc(56px + env(safe-area-inset-top));
+    padding:env(safe-area-inset-top) max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));
+    background:#faf9f6f5;
+  }
+  .app-shell .topbar-right{gap:3px!important;}
+  .app-shell .topbar .status-chip{min-height:38px;}
+  .app-shell .workspace main{padding:17px 13px calc(89px + env(safe-area-inset-bottom));}
+  .app-shell .page-heading{margin-bottom:14px;}
+  .app-shell .page-heading h1{font-size:clamp(25px,6.8vw,30px);}
+  .app-shell .dashboard-v11{gap:12px;}
+  .app-shell .balance-card{padding:22px 19px;}
+  .app-shell .balance-value{font-size:clamp(30px,8.1vw,40px);margin-top:19px;line-height:1.12;}
+  .app-shell .balance-separator{margin:19px 0 13px;}
+  .app-shell .card{padding:16px;}
+  .app-shell .treasury-strip{padding:11px 14px;}
+  .app-shell .wallet-mini{padding:12px 10px;}
+  .app-shell .pk-home-actions{display:none;}
+  .app-shell .pk-bottom-nav{
+    border-top:1px solid #e8e6e1;
+    background:#faf9f6f8;
+    box-shadow:none;
+    min-height:calc(65px + env(safe-area-inset-bottom));
+    padding:5px max(6px,env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));
+  }
+  .app-shell .pk-bottom-nav>button{font-size:10px;gap:3px;min-height:54px;}
+  .app-shell .pk-bottom-nav>button.active{color:#ac674a;background:transparent;}
+  .app-shell .pk-bottom-nav .pk-nav-add-symbol{box-shadow:none;border-radius:10px;background:#cb734f;}
+  .app-shell .sidebar nav button{min-height:44px;}
+  .app-shell .section-title h2{font-size:calc(15px * var(--text-scale,1));}
+  .app-shell .tx-description strong{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+}
+@media(max-width:400px){
+  .app-shell .workspace main{padding:15px 12px calc(88px + env(safe-area-inset-bottom));}
+  .app-shell .topbar .status-chip{max-width:88px;}
+  .app-shell .balance-card{padding:20px 17px;}
+}
+[data-theme=dark] body{background:#142734;}
+[data-theme=dark] .app-shell .topbar,
+[data-theme=dark] .app-shell .pk-bottom-nav{background:#192f3df7;border-color:#365060;}
+[data-theme=dark] .app-shell .card,
+[data-theme=dark] .app-shell .envelope,
+[data-theme=dark] .app-shell .project-card,
+[data-theme=dark] .app-shell .wallet-full,
+[data-theme=dark] .app-shell .history-card,
+[data-theme=dark] .app-shell .pk-agenda-main,
+[data-theme=dark] .app-shell .pk-agenda-events,
+[data-theme=dark] .app-shell .pk-fx-card{background:#1f3746;border-color:#38515e;color:#eef0ed;}
+[data-theme=dark] .app-shell .balance-card{background:#263f50;border-color:#3a5666;}
+[data-theme=dark] .app-shell .dashboard-v11 .treasury-strip{background:#243c49;border-color:#3d5360;}
+[data-theme=dark] .app-shell .treasury-strip>div>div>span{color:#adc1cd;}
+[data-theme=dark] .app-shell .treasury-strip strong{color:#f0f0eb;}
+[data-theme=dark] .app-shell .wallet-mini,
+[data-theme=dark] .app-shell .quick-actions button{background:#2a4350;border-color:#3d5460;color:#e6eef0;}
+[data-theme=dark] .app-shell .wallet-mini:hover,
+[data-theme=dark] .app-shell .quick-actions button:hover{background:#304d5b;border-color:#617b86;}
+[data-theme=dark] .app-shell .wallet-mini>span:nth-child(2),
+[data-theme=dark] .app-shell .quick-actions small{color:#b8c9d1;}
+[data-theme=dark] .app-shell .button.secondary{background:transparent;border-color:#4a606a;color:#dbe4e6;}
+[data-theme=dark] .app-shell .button.secondary:hover{background:#304856;}
+[data-theme=dark] .app-shell .tx{border-color:#344e5b;}
+[data-theme=dark] .app-shell .quick-icon{background:#3d5360;}
+@media(prefers-reduced-motion:reduce){
+  .app-shell .button,.app-shell .link,.app-shell .wallet-mini{transition:none;}
+}
