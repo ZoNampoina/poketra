@@ -105,7 +105,7 @@ test('Styles Android : confort tactile, marges système et formulaires sans zoom
  assert.match(refinement,/\.app-shell \.sidebar nav button:before\{content:none;display:none/);
  assert.match(refinement,/\.app-shell \.pk-home-actions\{display:none/);
  assert.match(refinement,/\.app-shell \.pk-bottom-nav/);
- assert.match(refinement,/\[data-theme=dark\] \.app-shell \.card/);;
+ assert.match(refinement,/\[data-theme=dark\] \.app-shell \.card/);
  assert.ok(layout.includes('viewportFit: "cover"'));
  assert.match(css,/@media\s*\(max-width:760px\)/);
  assert.match(css,/safe-area-inset-bottom/);
