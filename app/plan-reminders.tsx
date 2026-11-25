@@ -6,7 +6,7 @@ import type {Obligation} from '@/lib/finance';
 async function api(method:string,body?:unknown){
   const response=await fetch('/api/reminders',{method,cache:'no-store',credentials:'same-origin',
     headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});
-  const result=await response.json();
+  const result=await response.json() as {key?:string;error?:string};
   if(!response.ok)throw new Error(result.error??'Connexion au service de rappels impossible.');
   return result;
 }
@@ -29,6 +29,7 @@ export function NotificationSettings({demo}:{demo:boolean}){
         localStorage.removeItem('poketra-push-enabled');setActive(false);
       }else{
         const {key}=await api('GET');
+        if(!key)throw new Error('Le service de rappels est indisponible.');
         const bytes=Uint8Array.from(atob(key.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
         subscription??=await registration.pushManager.subscribe({applicationServerKey:bytes,userVisibleOnly:true});
         await api('POST',subscription.toJSON());localStorage.setItem('poketra-push-enabled','1');setActive(true);
@@ -51,8 +52,9 @@ export async function readReminderIntent(token:string):Promise<ReminderIntent|un
   const response=await cache.match(key);
   if(!response)return;
   await cache.delete(key);
-  const item=await response.json();
-  if(Date.now()-item.created>86400000||!['confirm','snooze','open'].includes(item.action))return;
+  const item=await response.json() as ReminderIntent & {created:number};
+  if(!item||typeof item.plan!=='string'||typeof item.occurrence!=='string'||!Number.isFinite(Date.parse(item.at))||
+    !Number.isFinite(item.created)||Date.now()-item.created>86400000||!['confirm','snooze','open'].includes(item.action))return;
   return item;
 }
 export async function planSignature(o:Obligation){

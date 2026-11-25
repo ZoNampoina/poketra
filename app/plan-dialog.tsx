@@ -7,6 +7,7 @@ import {addDays,isIncomePlan,isPending,occurrenceDate,reminderAt} from '@/lib/sc
 import {Amount,Field} from './ui';
 
 type Props={s:F.State;income:boolean;id?:string;busy:boolean;commit:(s:F.State,msg:string)=>Promise<boolean>};
+type ReviewMode='review'|'edit'|'snooze'|'postpone'|'cancel';
 export const frequencies={once:'Une fois',weekly:'Chaque semaine',monthly:'Chaque mois'};
 export const formatDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
 
@@ -60,7 +61,7 @@ function PlanForm({s,income,plan,busy,commit}:{plan?:F.Obligation}&Props){
 
 export default function PlanDialog(props:Props){
   const {s,id,busy,commit}=props,plan=s.obligations.find(o=>o.id===id);
-  const [mode,setMode]=useState<'review'|'edit'|'snooze'|'postpone'|'cancel'>('review');
+  const [mode,setMode]=useState<ReviewMode>('review');
   const [error,setError]=useState('');
   // Keep the occurrence the user actually opened, including across a synchronization.
   const [expected]=useState(plan?occurrenceDate(plan):'');
@@ -80,7 +81,7 @@ export default function PlanDialog(props:Props){
       }
     }catch(ex){setError((ex as Error).message);}
   }
-  const pick=(next:typeof mode)=>{setMode(next);setError('');};
+  const pick=(next:ReviewMode)=>{setMode(next);setError('');};
   const tomorrow=addDays(F.today(),1),afterDue=addDays(plan.due,1),nextDate=afterDue>tomorrow?afterDue:tomorrow;
   const later=new Date(Date.now()+3600000).toLocaleString('sv-SE',{timeZone:'Indian/Antananarivo'}).slice(0,16).replace(' ','T');
   return <div className="plan-review">

@@ -30,7 +30,7 @@ export function advancePlan(plan: Obligation, paid: boolean): Obligation {
   const { scheduledFor, remindAt, ...rest } = plan;
   return { ...rest, due: next ?? plan.due, scheduledFor: next ? undefined : scheduledFor,
     paidDates: paid ? [...plan.paidDates, date] : plan.paidDates,
-    status: next ? 'upcoming' : paid || plan.recurrence !== 'once' ? 'completed' : 'cancelled' };
+    status: next ? 'upcoming' : paid ? 'completed' : 'cancelled' };
 }
 
 /** The displayed date can move independently of the weekly or monthly contract. */

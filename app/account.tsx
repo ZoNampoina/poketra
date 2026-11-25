@@ -5,10 +5,17 @@ export default function Account({onSignedIn}:{onSignedIn:()=>Promise<void>}){
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[token,setToken]=useState(''),[account,setAccount]=useState<string|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  useEffect(()=>{void fetch('/api/auth',{cache:'no-store',credentials:'same-origin'}).then(async r=>{if(r.ok){const data=await r.json() as {email?:string};setAccount(data.email??null);}}).catch(()=>{});},[]);
  async function act(action:string){if(busy)return;setBusy(true);setError('');setMessage('');try{
-  const r=await fetch('/api/auth',{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,email,password,token})});
+  const registration=action==='logout'?await navigator.serviceWorker?.getRegistration().catch(()=>undefined):undefined;
+  const subscription=await registration?.pushManager?.getSubscription().catch(()=>null);
+  const r=await fetch('/api/auth',{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,email,password,token,pushEndpoint:subscription?.endpoint})});
   const result=await r.json() as {email?:string;error?:string;message?:string};if(!r.ok)throw new Error(result.error??'Connexion indisponible.');
   setPassword('');setToken('');
-  if(action==='logout'){setAccount(null);setMessage('Compte déconnecté. Les données de cet appareil restent conservées.');}
+  if(action==='logout'){
+    localStorage.removeItem('poketra-push-enabled');
+    await subscription?.unsubscribe().catch(()=>false);
+    if(registration)for(const n of await registration.getNotifications().catch(()=>[]))if(n.data?.plan)n.close();
+    setAccount(null);setMessage('Compte déconnecté. Les données de cet appareil restent conservées.');
+  }
   else if(result.email){setAccount(result.email);await onSignedIn();setMessage('Compte connecté. Consulte le statut de synchronisation ci-dessous.');}
   else setMessage(result.message??'Vérification terminée.');
  }catch(e){setError((e as Error).message);}finally{setBusy(false);}}

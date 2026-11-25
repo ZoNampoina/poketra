@@ -1,12 +1,14 @@
 import {supabaseServer} from '@/lib/supabase-server';
 import {authenticated,privateHeaders,apiFailure} from '@/lib/supabase-store';
 import {sameOrigin,ApiError} from '@/lib/server-store';
+import {trustedPushEndpoint} from '@/lib/push-subscription';
 export const dynamic='force-dynamic';
 export async function GET(){try{const {user}=await authenticated();return Response.json({email:user.email},{headers:privateHeaders});}catch(e){return apiFailure(e);}}
 export async function POST(request:Request){try{
-  sameOrigin(request);const input=await request.json() as {action:string;email?:string;password?:string;token?:string};
+  sameOrigin(request);const input=await request.json() as {action:string;email?:string;password?:string;token?:string;pushEndpoint?:unknown};
   const client=await supabaseServer();
   if(input.action==='logout'){
+    if(trustedPushEndpoint(input.pushEndpoint))await client.from('poketra_push_devices').delete().eq('endpoint',input.pushEndpoint);
     const {error}=await client.auth.signOut({scope:'local'});if(error)throw new ApiError(503,'Déconnexion temporairement indisponible.');
     return Response.json({ok:true},{headers:privateHeaders});
   }

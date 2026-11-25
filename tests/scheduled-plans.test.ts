@@ -35,16 +35,16 @@ test('Un montant variable exige le montant réel. L’encaissement alimente le p
   assert.equal(events.length,1);assert.equal(events[0].status,'recorded');
 });
 test('Rappeler, reporter et annuler conservent les soldes et l’ancrage mensuel',()=>{
-  const s=planned({due:'2028-01-31',recurrence:'monthly'}),p=s.obligations[0];
-  assert.equal(reminderAt(p),'2028-01-31T06:00:00.000Z');
+  const s=planned({due:'2096-01-31',recurrence:'monthly'}),p=s.obligations[0];
+  assert.equal(reminderAt(p),'2096-01-31T06:00:00.000Z');
   const later=new Date(Date.now()+3600000).toISOString();
   const snoozed=F.changeOccurrence(s,p.id,p.due,'snooze',later);
   assert.equal(snoozed.obligations[0].due,p.due);assert.equal(reminderAt(snoozed.obligations[0]),later);
-  const postponed=F.changeOccurrence(snoozed,p.id,p.due,'postpone','2028-02-05');
+  const postponed=F.changeOccurrence(snoozed,p.id,p.due,'postpone','2096-02-05');
   assert.equal(occurrenceDate(postponed.obligations[0]),p.due);
   const skipped=F.changeOccurrence(postponed,p.id,p.due,'skip');
-  assert.equal(skipped.obligations[0].due,'2028-02-29');assert.equal(advancePlan(skipped.obligations[0],false).due,'2028-03-31');
-  const stopped=F.changeOccurrence(skipped,p.id,'2028-02-29','stop');
+  assert.equal(skipped.obligations[0].due,'2096-02-29');assert.equal(advancePlan(skipped.obligations[0],false).due,'2096-03-31');
+  const stopped=F.changeOccurrence(skipped,p.id,'2096-02-29','stop');
   assert.equal(isPending(stopped.obligations[0]),false);assert.deepEqual(stopped.operations,s.operations);
 });
 test('Dépense variable : provision partielle, complément explicite et refus atomique du découvert',()=>{

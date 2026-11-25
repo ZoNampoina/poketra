@@ -14,7 +14,7 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     sameOrigin(request);
-    const {client,owner}=await authenticated(),input=await request.json();
+    const {client,owner}=await authenticated(),input=await request.json() as {endpoint?:unknown;keys?:unknown}|null;
     if(!trustedPushEndpoint(input?.endpoint)||!validPushKeys(input?.keys))throw new ApiError(400,'Abonnement aux notifications invalide.');
     const {error}=await client.from('poketra_push_devices').upsert({owner_id:owner,endpoint:input.endpoint,keys:input.keys},{onConflict:'owner_id,endpoint'});
     if(error)storeError(error);
@@ -23,7 +23,7 @@ export async function POST(request:Request){
 }
 export async function DELETE(request:Request){
   try{
-    sameOrigin(request);const {client,owner}=await authenticated(),input=await request.json();
+    sameOrigin(request);const {client,owner}=await authenticated(),input=await request.json() as {endpoint?:unknown}|null;
     if(!trustedPushEndpoint(input?.endpoint))throw new ApiError(400,'Appareil inconnu.');
     const {error}=await client.from('poketra_push_devices').delete().eq('owner_id',owner).eq('endpoint',input.endpoint);
     if(error)storeError(error);
