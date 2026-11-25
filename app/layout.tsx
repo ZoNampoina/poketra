@@ -3,6 +3,7 @@ import "./globals.css";
 import "./poketrako.css";
 import "./android.css";
 import "./refinement.css";
+import "./plans.css";
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 

@@ -9,5 +9,11 @@ function mergeValue(base:any,local:any,remote:any,path:string):any{if(canonical(
 }
 export function mergeStates(base:F.State|undefined,local:F.State,remote:F.State):F.State{if(!base){if(canonical(local)===canonical(remote))return local;const ids=new Map(remote.operations.map(o=>[o.id,o]));if(local.operations.every(o=>canonical(ids.get(o.id))===canonical(o))&&local.operations.length===remote.operations.length)return mergeValue(upgrade(local),upgrade(local),upgrade(remote),'');throw new MergeConflict('Aucun état commun entre les deux appareils.');}
  const b=upgrade(base),l=upgrade(local),r=upgrade(remote);for(const op of b.operations){if(canonical(l.operations.find(o=>o.id===op.id))!==canonical(op)||canonical(r.operations.find(o=>o.id===op.id))!==canonical(op))throw new MergeConflict('journal '+op.id);}
- const operations=[...r.operations,...l.operations.filter(o=>!r.operations.some(v=>v.id===o.id))];const result=mergeValue({...b,operations:[]},{...l,operations:[]},{...r,operations:[]},'') as F.State;result.operations=operations;F.validateState(result);return result;
+ const remoteById=new Map(r.operations.map(o=>[o.id,o]));
+ for(const op of l.operations){
+   const other=remoteById.get(op.id);
+   if(other&&op.id.startsWith('plan:')&&canonical({...op,createdAt:''})!==canonical({...other,createdAt:''}))
+     throw new MergeConflict('Deux validations différentes pour '+op.label);
+ }
+ const operations=[...r.operations,...l.operations.filter(o=>!remoteById.has(o.id))];const result=mergeValue({...b,operations:[]},{...l,operations:[]},{...r,operations:[]},'') as F.State;result.operations=operations;F.validateState(result);return result;
 }

@@ -1,8 +1,34 @@
 'use client';
 import {useState} from 'react';
-import {CalendarDays,Plus} from 'lucide-react';
+import {ArrowDownLeft,CalendarDays} from 'lucide-react';
 import * as F from '@/lib/finance';
 import {displayMoney} from '@/lib/display';
-import {Field} from './ui';
-export default function Scheduled({s,commit,open,busy}:{s:F.State;commit:(s:F.State,msg?:string)=>Promise<boolean>;open:(type:string,id?:string)=>void;busy:boolean}){const [editing,setEditing]=useState(''),[error,setError]=useState(''),money=(n:number)=>displayMoney(s,n),funds=F.balances(s,'funds');return <><div className="section-title"><h2>Dépenses programmées et obligations</h2><button className="button primary" onClick={()=>open('obligation')}><Plus size={16}/>Prévoir une dépense</button></div><section className="card">{s.obligations.length?s.obligations.map(o=>{const paid=o.recurrence==='once'&&o.paidDates.includes(o.due),cancelled=o.status==='cancelled';return <div className="schedule-item" key={o.id}><div className="obligation-row"><span className="soft-icon sand"><CalendarDays size={20}/></span><div><strong>{o.name}</strong><small>{o.due} · {paid?'Payé':cancelled?'Annulé':o.status==='postponed'?'Reporté':'À venir'} · {o.recurrence==='monthly'?'Mensuel':'Unique'}</small><small>{money(funds['o-'+o.id]??0)} provisionnés · {o.beneficiary??'Bénéficiaire facultatif'}</small></div><strong>{money(o.amount)}</strong><button className="button secondary" disabled={busy||cancelled||paid} onClick={()=>open('allocate','o-'+o.id)}>Provisionner</button><button className="button primary" disabled={busy||cancelled||paid} onClick={()=>open('obligation',o.id)}>Payer</button><button className="link" onClick={()=>setEditing(editing===o.id?'':o.id)}>Modifier la prévision</button></div>{editing===o.id&&<form className="form-grid schedule-editor" onSubmit={e=>{e.preventDefault();try{const d=new FormData(e.currentTarget),due=String(d.get('due')),amount=F.amount(d.get('amount')),next={...s,obligations:s.obligations.map(v=>v.id!==o.id?v:{...v,name:String(d.get('name')),amount,due,anchorDay:Number(due.slice(8)),walletId:String(d.get('wallet')),beneficiary:String(d.get('beneficiary')),status:String(d.get('status')) as 'upcoming'|'postponed'|'cancelled',notes:String(d.get('notes'))})};F.validateState(next);void commit(next,'Prévision enregistrée');setEditing('');}catch(e){setError((e as Error).message);}}}><Field label="Nom"><input name="name" defaultValue={o.name} required/></Field><Field label="Montant"><input name="amount" type="number" inputMode="numeric" min="1" step="1" defaultValue={o.amount} required/></Field><Field label="Date prévue"><input name="due" type="date" defaultValue={o.due} required/></Field><Field label="Portefeuille prévu"><select name="wallet" defaultValue={o.walletId??'mvola'}>{s.wallets.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></Field><Field label="Bénéficiaire"><input name="beneficiary" defaultValue={o.beneficiary}/></Field><Field label="État"><select name="status" defaultValue={o.status??'upcoming'}><option value="upcoming">À venir</option><option value="postponed">Reporté</option><option value="cancelled">Annulé</option></select></Field><Field label="Note" wide><textarea name="notes" defaultValue={o.notes}/></Field><p className="form-help wide">La prévision ne change aucun solde réel. Annuler une prévision ne libère pas automatiquement sa provision : réaffecte-la si nécessaire.</p><button className="button primary wide" disabled={busy}>Enregistrer la prévision</button></form>}</div>; }):<div className="empty small"><CalendarDays size={35}/><p>Aucune échéance enregistrée.</p></div>}{error&&<p className="form-error">{error}</p>}</section><p className="muted-note">Le paiement réel est toujours confirmé. Les budgets restent continus même lorsque certaines dépenses sont mensuelles.</p></>;
+import {isIncomePlan,isPending} from '@/lib/schedule';
+import {formatDate,frequencies} from './plan-dialog';
+import {NotificationSettings} from './plan-reminders';
+
+export default function Scheduled({s,income,open,busy,demo}:{s:F.State;income:boolean;open:(type:string,id?:string)=>void;busy:boolean;demo:boolean}){
+  const [archive,setArchive]=useState(false);
+  const plans=s.obligations.filter(o=>isIncomePlan(o)===income);
+  const active=plans.filter(isPending).sort((a,b)=>a.due.localeCompare(b.due));
+  const closed=plans.filter(o=>!isPending(o)).sort((a,b)=>b.due.localeCompare(a.due));
+  const funds=F.balances(s,'funds'),Icon=income?ArrowDownLeft:CalendarDays;
+  function row(o:F.Obligation){
+    const pending=isPending(o);
+    const status=pending?(o.status==='postponed'?'Reporté':o.due<F.today()?'En retard':'Prévu'):o.status==='cancelled'?'Annulé':'Terminé';
+    return <article className="plan-row" key={o.id}>
+      <span className={'soft-icon '+(income?'green':'sand')}><Icon size={20}/></span>
+      <div className="plan-description"><strong>{o.name}</strong><small>{formatDate(o.due)} · {frequencies[o.recurrence]} · {status}</small>
+        {o.walletId&&<small>{s.wallets.find(w=>w.id===o.walletId)?.name}{o.endsOn?' · Jusqu’au '+formatDate(o.endsOn):''}</small>}
+        {!income&&(funds['o-'+o.id]??0)>0&&<small>{displayMoney(s,funds['o-'+o.id])} provisionnés</small>}
+      </div>
+      <strong className={income?'green':''}>{o.variableAmount?'À préciser':displayMoney(s,o.amount)}</strong>
+      {pending&&<div className="plan-actions">{!income&&<button className="link" disabled={busy} onClick={()=>open('allocate','o-'+o.id)}>Provisionner</button>}
+        <button className="button secondary" disabled={busy} onClick={()=>open(income?'plannedIncome':'obligation',o.id)}>Gérer</button></div>}
+    </article>;
+  }
+  return <div className="plan-list"><NotificationSettings demo={demo}/>
+    <section className="card">{active.length?active.map(row):<div className="empty small"><Icon size={28}/><p>{income?'Aucune entrée prévue.':'Aucune échéance à venir.'}</p></div>}</section>
+    {closed.length>0&&<section><button type="button" className="link" aria-expanded={archive} onClick={()=>setArchive(!archive)}>Programmes terminés ou annulés ({closed.length})</button>{archive&&<div className="card">{closed.map(row)}</div>}</section>}
+  </div>;
 }

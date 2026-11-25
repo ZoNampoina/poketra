@@ -1,15 +1,25 @@
 import type { Extras } from './models';
 import { effective } from './models';
+import { advancePlan, isIncomePlan, isPending, occurrenceDate } from './schedule';
+export { nextMonth } from './schedule';
 import { EXTENDED_KINDS, validateExtras, validateExtended, validateExpenseFunding } from './validation';
 export type Kind = 'opening' | 'income' | 'expense' | 'transfer' | 'allocation' | 'reversal' | 'adjustment' | 'loan_issue' | 'loan_collect' | 'loan_borrow' | 'loan_repay';
 export type Wallet = { id: string; name: string; group: 'mobile' | 'cash' | 'bank'; color: string };
 export type Category = { id: string; name: string; color: string; icon: string; essential: boolean; children: string[]; archived?:boolean; favorite?:boolean };
 export type Fund = { id: string; name: string; kind: 'unassigned' | 'reserve' | 'envelope' | 'provision'; categoryId?: string; projectId?: string; obligationId?: string; loanId?:string };
 export type Project = { id: string; name: string; client: string; description: string; agreed: number; created: string; expectedDate?:string; status?:'planned'|'active'|'completed'|'cancelled' };
-export type Obligation = { id: string; name: string; amount: number; due: string; categoryId: string; recurrence: 'once' | 'monthly'; paidDates: string[]; status?:'upcoming'|'postponed'|'cancelled'; walletId?:string; beneficiary?:string; notes?:string; anchorDay?:number };
+export type Obligation = {
+  id: string; name: string; amount: number; due: string; categoryId: string;
+  recurrence: 'once' | 'weekly' | 'monthly'; paidDates: string[];
+  status?: 'upcoming' | 'postponed' | 'cancelled' | 'completed';
+  direction?: 'income' | 'expense'; variableAmount?: boolean; endsOn?: string;
+  scheduledFor?: string; reminderTime?: string; remindAt?: string; useAvailable?: boolean;
+  walletId?: string; beneficiary?: string; notes?: string; anchorDay?: number; projectId?: string;
+};
+type ScheduleCursor = Pick<Obligation, 'due' | 'scheduledFor' | 'remindAt' | 'status'>;
 export type Entry = { id: string; delta: number };
 export type ExpenseLine = { role?: 'fee'; amount: number; categoryId: string; fundId: string; projectId?: string; subcategory?: string; beneficiary?: string; label: string };
-export type Operation = { id: string; createdAt: string; date: string; kind: Kind; label: string; wallets: Entry[]; funds: Entry[]; expenses: ExpenseLine[]; projectId?: string; beneficiary?: string; reversalOf?: string; obligationId?: string; obligationDue?: string; reserveAuthorized?: boolean; funding?:{from:string;to:string;amount:number}[]; correction?:{before:number;actual:number;reason:string}; capital?:{loanId:string;amount:number;fundId:string}; receivedInterest?:number };
+export type Operation = { id: string; createdAt: string; date: string; kind: Kind; label: string; wallets: Entry[]; funds: Entry[]; expenses: ExpenseLine[]; projectId?: string; beneficiary?: string; reversalOf?: string; obligationId?: string; obligationDue?: string; obligationCursor?:ScheduleCursor; reserveAuthorized?: boolean; funding?:{from:string;to:string;amount:number}[]; correction?:{before:number;actual:number;reason:string}; capital?:{loanId:string;amount:number;fundId:string}; receivedInterest?:number };
 export type State = { version: 1; extra?: Extras; wallets: Wallet[]; categories: Category[]; funds: Fund[]; projects: Project[]; obligations: Obligation[]; operations: Operation[]; settings: { reserveTarget: number; essentialMonthly: number; name: string }; initialized: boolean };
 export const UNASSIGNED = 'unassigned';
 export const RESERVE = 'reserve';
@@ -71,7 +81,21 @@ export function validateState(s: State): void {
   for (const w of s.wallets) if (!['mobile','cash','bank'].includes(w.group) || !/^#[a-fA-F0-9]{6}$/.test(w.color)) throw new Error('Portefeuille invalide.');
   for (const c of s.categories) if (!Array.isArray(c.children) || c.children.some(v=>typeof v!=='string') || !/^#[a-fA-F0-9]{6}$/.test(c.color) || typeof c.icon!=='string' || typeof c.essential!=='boolean') throw new Error('Catégorie invalide.');
   for (const p of s.projects) { amount(p.agreed, false); if (typeof p.client!=='string' || typeof p.description!=='string' || !validDate(p.created)) throw new Error('Projet invalide.'); }
-  for (const o of s.obligations) { amount(o.amount); if (!validDate(o.due) || !['once','monthly'].includes(o.recurrence) || !Array.isArray(o.paidDates) || o.paidDates.some(d=>!validDate(d)) || !s.categories.some(c=>c.id===o.categoryId)) throw new Error('Échéance invalide.'); }
+  for (const o of s.obligations) {
+    amount(o.amount, !o.variableAmount);
+    if (!validDate(o.due) || !['once','weekly','monthly'].includes(o.recurrence)
+      || !Array.isArray(o.paidDates) || o.paidDates.some(d=>!validDate(d))
+      || !s.categories.some(c=>c.id===o.categoryId)
+      || (o.direction !== undefined && !['income','expense'].includes(o.direction))
+      || (o.status !== undefined && !['upcoming','postponed','cancelled','completed'].includes(o.status))
+      || (o.scheduledFor !== undefined && !validDate(o.scheduledFor))
+      || (o.endsOn !== undefined && (!validDate(o.endsOn) || o.endsOn < occurrenceDate(o)))
+      || (o.reminderTime !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(o.reminderTime))
+      || (o.remindAt !== undefined && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(o.remindAt) || !Number.isFinite(Date.parse(o.remindAt))))
+      || (o.anchorDay !== undefined && (!Number.isInteger(o.anchorDay) || o.anchorDay<1 || o.anchorDay>31))
+      || (o.walletId && !s.wallets.some(w=>w.id===o.walletId))
+      || (o.projectId && !s.projects.some(p=>p.id===o.projectId))) throw new Error('Programme invalide. Vérifie les dates et le portefeuille.');
+  }
   for (const f of s.funds) if (!['unassigned','reserve','envelope','provision'].includes(f.kind) || (f.kind==='envelope'&&!s.categories.some(c=>c.id===f.categoryId)) || (f.projectId&&!s.projects.some(p=>p.id===f.projectId)) || (f.obligationId&&!s.obligations.some(o=>o.id===f.obligationId))) throw new Error('Affectation invalide.');
   for (const id of ['mvola','orange','airtel','cash','bank']) if(!s.wallets.some(w=>w.id===id)) throw new Error('Portefeuille principal manquant.');
   for (const id of ['essential','personal','family','free','transport','health','financial','other']) if(!s.categories.some(c=>c.id===id)) throw new Error('Catégorie principale manquante.');
@@ -153,13 +177,20 @@ export function allocate(s: State, from: string, to: string, value: number, conf
   const op = base('allocation', a.name + ' → ' + b.name); op.funds = [{ id: from, delta: -n }, { id: to, delta: n }]; if(from===RESERVE)op.reserveAuthorized=true;
   return append(s, op);
 }
-export function expense(s: State, args: { walletId: string; fundId: string; categoryId: string; amount: number; label: string; date?: string; projectId?: string; beneficiary?: string; subcategory?: string; reserveConfirmed?: boolean }): State {
+export function expense(s: State, args: { walletId: string; fundId: string; categoryId: string; amount: number; label: string; date?: string; projectId?: string; beneficiary?: string; subcategory?: string; reserveConfirmed?: boolean; useAvailable?:boolean }): State {
   const n = amount(args.amount), fund = s.funds.find(f => f.id === args.fundId);
   if (!fund || fund.kind === 'unassigned') throw new Error('Attribue d’abord l’argent à une enveloppe ou à une provision.');
   if (fund.kind === 'envelope' && fund.categoryId !== args.categoryId) throw new Error('La catégorie doit correspondre à l’enveloppe.');
   if (fund.projectId && fund.projectId !== args.projectId) throw new Error('Cette provision appartient à un autre projet.');
   if (fund.kind === 'reserve' && !args.reserveConfirmed) throw new Error('Confirme l’utilisation de la réserve protégée.');
   const op = base('expense', args.label, args.date); op.wallets = [{ id: args.walletId, delta: -n }]; op.funds = [{ id: args.fundId, delta: -n }];
+  if (args.useAvailable) {
+    const shortfall = Math.max(0, n - (balances(s,'funds')[args.fundId] ?? 0));
+    if (shortfall) {
+      op.funding = [{from:UNASSIGNED,to:args.fundId,amount:shortfall}];
+      op.funds.unshift({id:UNASSIGNED,delta:-shortfall},{id:args.fundId,delta:shortfall});
+    }
+  }
   op.expenses = [{ amount: n, categoryId: args.categoryId, fundId: args.fundId, projectId: args.projectId, beneficiary: args.beneficiary, subcategory: args.subcategory, label: args.label }];
   op.projectId = args.projectId; op.beneficiary = args.beneficiary; if(args.fundId===RESERVE)op.reserveAuthorized=true; return append(s, op);
 }
@@ -181,7 +212,7 @@ export function reverse(s: State, id: string): State {
   op.wallets = original.wallets.map(e => ({ ...e, delta: -e.delta })); op.funds = original.funds.map(e => ({ ...e, delta: -e.delta }));
   if (original.obligationId && activeOperations(s).some(x=>x.obligationId===original.obligationId && s.operations.indexOf(x)>s.operations.indexOf(original))) throw new Error('Annule d’abord les paiements suivants de cette échéance.');
   const next=append(s, op);
-  if (original.obligationId) return {...next,obligations:next.obligations.map(o=>o.id!==original.obligationId?o:{...o,due:original.obligationDue!,paidDates:o.paidDates.filter(d=>d!==original.obligationDue)})};
+  if (original.obligationId) return {...next,obligations:next.obligations.map(o=>o.id!==original.obligationId?o:{...o,status:'upcoming',scheduledFor:undefined,remindAt:undefined,due:original.obligationDue!,...original.obligationCursor,paidDates:o.paidDates.filter(d=>d!==original.obligationDue)})};
   return next;
 }
 const activeCache=new WeakMap<State,Operation[]>();
@@ -205,19 +236,43 @@ export function projectSummary(s: State, id: string) {
 }
 export function addObligation(s: State, input: Omit<Obligation, 'id' | 'paidDates'>): State {
   if (!input.name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(input.due)) throw new Error('Précise le nom et l’échéance.');
-  const o = { ...input, amount: amount(input.amount), id: uid(), paidDates: [] };
-  const next: State = { ...s, obligations: [...s.obligations, o], funds: [...s.funds, { id: 'o-' + o.id, name: 'Échéance · ' + o.name, kind: 'provision', obligationId: o.id }] }; validateState(next); return next;
+  const o = { ...input, name:input.name.trim(), amount: amount(input.amount,!input.variableAmount), anchorDay:input.anchorDay??Number(input.due.slice(8)), id: uid(), paidDates: [] };
+  const next: State = { ...s, obligations: [...s.obligations, o], funds: isIncomePlan(o) ? s.funds : [...s.funds, { id: 'o-' + o.id, name: 'Échéance · ' + o.name, kind: 'provision', obligationId: o.id }] }; validateState(next); return next;
 }
-export function settleObligation(s: State, id: string, walletId: string): State {
-  const o = s.obligations.find(x => x.id === id); if (!o) throw new Error('Échéance inconnue.'); if(o.status==='cancelled')throw new Error('Cette prévision est annulée. Réactive-la avant de payer.');
-  const next = expense(s, { walletId, fundId: 'o-' + id, categoryId: o.categoryId, amount: o.amount, label: o.name,beneficiary:o.beneficiary });
-  if (o.recurrence==='once'&&o.paidDates.includes(o.due)) throw new Error('Cette échéance est déjà payée.');
-  const latest=next.operations.at(-1)!;
-  return { ...next, operations:[...next.operations.slice(0,-1),{...latest,obligationId:id,obligationDue:o.due}], obligations: next.obligations.map(x => x.id !== id ? x : { ...x, paidDates: [...x.paidDates, x.due], due: x.recurrence === 'monthly' ? nextMonth(x.due,x.anchorDay??Number((x.paidDates[0]??x.due).slice(8))) : x.due }) };
+function pendingPlan(s: State, id: string, expected?: string) {
+  const o = s.obligations.find(x => x.id === id);
+  if (!o) throw new Error('Programme introuvable.');
+  if (o.status==='cancelled') throw new Error('Cette prévision est annulée.');
+  if (!isPending(o) || (expected && occurrenceDate(o)!==expected)) throw new Error('Cette échéance est déjà payée, annulée ou traitée.');
+  return o;
 }
-export function nextMonth(date: string, anchor?:number): string {
-  const [y,m,d] = date.split('-').map(Number), end = new Date(Date.UTC(y,m+1,0)).getUTCDate();
-  return new Date(Date.UTC(y,m,Math.min(anchor??d,end))).toISOString().slice(0,10);
+export function settleObligation(s: State, id: string, walletId: string, value?: number, expected?: string): State {
+  const o = pendingPlan(s,id,expected), date = occurrenceDate(o);
+  const actual = amount(o.variableAmount ? value : o.amount);
+  const common = {walletId,amount:actual,label:o.name};
+  const next = isIncomePlan(o) ? income(s,{...common,projectId:o.projectId}) :
+    expense(s,{...common,fundId:'o-'+id,categoryId:o.categoryId,beneficiary:o.beneficiary,useAvailable:o.useAvailable});
+  const attempt = s.operations.filter(op=>op.obligationId===id && op.obligationDue===date).length;
+  const {due,scheduledFor,remindAt,status} = o;
+  const op = {...next.operations.at(-1)!,id:'plan:'+id+':'+date+':'+attempt,obligationId:id,obligationDue:date,obligationCursor:{due,scheduledFor,remindAt,status}};
+  const result = {...next,operations:[...next.operations.slice(0,-1),op],obligations:s.obligations.map(x=>x.id===id?advancePlan(o,true):x)};
+  validateState(result);
+  return result;
+}
+export type PlanAction = 'snooze'|'postpone'|'skip'|'stop';
+export function changeOccurrence(s: State, id: string, expected: string, action: PlanAction, value?: string) {
+  const o=pendingPlan(s,id,expected);
+  let plan:Obligation;
+  if (action==='snooze') {
+    if (!value || !Number.isFinite(Date.parse(value)) || Date.parse(value)<=Date.now()) throw new Error('Choisis un rappel à venir.');
+    plan={...o,remindAt:new Date(value).toISOString()};
+  } else if (action==='postpone') {
+    if (!value || !validDate(value) || value<=o.due || value<today()) throw new Error('Choisis une nouvelle date après la date prévue.');
+    plan={...o,due:value,scheduledFor:occurrenceDate(o),remindAt:undefined,status:'postponed'};
+  } else plan=action==='stop'?{...o,status:'cancelled'}:advancePlan(o,false);
+  const next={...s,obligations:s.obligations.map(item=>item.id===id?plan:item)};
+  validateState(next);
+  return next;
 }
 export function envelopeStats(s: State, id: string) {
   const f = balances(s, 'funds')[id] ?? 0;

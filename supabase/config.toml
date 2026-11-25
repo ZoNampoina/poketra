@@ -1,0 +1,3 @@
+[functions.poketra-reminders]
+# The database scheduler authenticates with its own random dispatch secret.
+verify_jwt = false
