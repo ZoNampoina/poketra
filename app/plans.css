@@ -1,0 +1,16 @@
+.plan-list,.plan-review{display:grid;gap:1rem}
+.plan-row,.plan-notifications{display:flex;align-items:center;gap:.85rem;flex-wrap:wrap}
+.plan-row{padding:1rem 0;border-bottom:1px solid var(--line,#dce2df)}
+.plan-row:last-child{border-bottom:0}
+.plan-description,.plan-notifications>div{display:grid;gap:.2rem;flex:1 1 12rem;min-width:0;overflow-wrap:anywhere}
+.plan-row small,.plan-notifications small,.plan-summary p,.plan-summary small{color:var(--muted,#63736c)}
+.plan-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.plan-check{display:flex;align-items:center;gap:.6rem;font-size:.9rem}
+.plan-check input{width:auto}
+.plan-notifications{padding:.75rem 0}
+.plan-review>.link,.plan-review .plan-actions{justify-self:start}
+.plan-summary h3,.plan-summary p{margin:.2rem 0}
+.plan-summary>strong{font-size:1.3rem}
+.pk-agenda-expectedIncome{background:#398570}
+.topbar .pk-alert-control:has(i){display:inline-flex}
+@media(max-width:550px){.plan-row .plan-actions{width:100%;justify-content:flex-end}.plan-description{flex-basis:55%}.plan-notifications .button{min-height:42px}}

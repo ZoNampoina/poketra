@@ -14,11 +14,26 @@ const {default:QuickEntry}=await import('../app/quick-entry');
 const {default:Poketra}=await import('../app/poketra');
 const {default:DecisionLab}=await import('../app/decision-lab');
 const {default:FinancialAgenda}=await import('../app/financial-agenda');
+const {default:PlanDialog}=await import('../app/plan-dialog');
 const {default:CurrencyConverter}=await import('../app/currency-converter');
 const {default:ContextHelp}=await import('../app/context-help');
 const {duplicateDraft}=await import('../app/record-detail');
 const {splitExpense}=await import('../lib/advanced-finance');
 function initial(){let s=upgrade(F.initialize(F.emptyState(),{cash:100000,mvola:200000}));s=F.allocate(s,F.UNASSIGNED,'e-essential',100000);return s;}
+test('La validation d’un revenu variable crée une seule écriture depuis le rappel',async()=>{
+  const s=F.addObligation(initial(),{direction:'income',name:'Contrat',recurrence:'weekly',categoryId:'other',
+    due:F.today(),walletId:'orange',variableAmount:true,amount:0});
+  const saved:F.State[]=[];
+  const view=await mount(PlanDialog,{s,income:true,id:s.obligations[0].id,busy:false,commit:async(next:F.State)=>{saved.push(next);return true;}});
+  const labels=[...view.container.querySelectorAll('button')].map(b=>b.textContent);
+  for(const name of ['Valider l’encaissement','Rappeler','Reporter','Annuler'])assert.ok(labels.includes(name));
+  assert.equal(saved.length,0);
+  (view.container.querySelector('[name=actual]') as unknown as HTMLInputElement).value='75000';
+  await act(async()=>{view.container.querySelector('form')!.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true}) as any);});
+  assert.equal(saved.length,1);assert.equal(saved[0].operations.length,s.operations.length+1);
+  assert.equal(F.balances(saved[0],'wallets').orange,75000);
+  await view.close();
+});
 async function mount(Component:any,props:any={}){const container=document.createElement('div');(document.body as any).append(container);const root=createRoot(container as any);await act(async()=>{root.render(createElement(Component,props));});return{container,root,async close(){await act(async()=>root.unmount());container.remove();}};}
 test('Saisie favorite : le montant reste à vérifier et rien ne s’enregistre à l’ouverture',async()=>{const s=initial();let commits=0;const view=await mount(QuickEntry,{s,type:'expense',draft:{amount:5000,walletId:'cash',categoryId:'essential',label:'Transport habituel'},commit:async()=>{commits++;return true;},busy:false});assert.equal(commits,0);assert.equal((view.container.querySelector('[name=amount]') as unknown as HTMLInputElement).value,'5000');assert.ok(view.container.textContent!.includes('Enregistrer et fermer'));await view.close();});
 test('Enregistrer et nouveau : une seule opération est créée et le montant est vidé',async()=>{let committed:F.State|undefined,stay:boolean|undefined;const view=await mount(QuickEntry,{s:initial(),type:'expense',draft:{amount:5000,walletId:'cash',categoryId:'essential',label:'Courses'},commit:async(s:F.State,_msg:string,keep:boolean)=>{committed=s;stay=keep;return true;},busy:false});const form=view.container.querySelector('form')!,button=view.container.querySelector('button[name=again]')!;await act(async()=>{form.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:button as any}) as any);});assert.equal(stay,true);assert.equal(committed!.operations.length,3);assert.equal(F.summary(committed!).wallets.cash,95000);assert.equal((view.container.querySelector('[name=amount]') as unknown as HTMLInputElement).value,'');await view.close();});

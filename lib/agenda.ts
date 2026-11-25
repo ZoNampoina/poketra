@@ -1,8 +1,9 @@
 import * as F from './finance';
+import {isIncomePlan,occurrences} from './schedule';
 import * as A from './advanced-finance';
 import * as M from './models';
 
-export type AgendaKind='payment'|'income'|'scheduled'|'project'|'loan';
+export type AgendaKind='payment'|'income'|'scheduled'|'expectedIncome'|'project'|'loan';
 export type AgendaEvent={
   id:string;
   date:string;
@@ -10,7 +11,8 @@ export type AgendaEvent={
   status:'recorded'|'planned'|'paid';
   title:string;
   amount:number;
-  section:'history'|'obligations'|'projects'|'loans';
+  variableAmount?:boolean;
+  section:'history'|'obligations'|'plannedIncome'|'projects'|'loans';
 };
 const monthPattern=/^\d{4}-(0[1-9]|1[0-2])$/;
 const validDate=(date:string)=>/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(new Date(date+'T12:00:00Z').getTime())&&new Date(date+'T12:00:00Z').toISOString().slice(0,10)===date;
@@ -33,21 +35,11 @@ export function agendaEvents(s:F.State,month:string):AgendaEvent[]{
   const {start,end}=monthBounds(month);
   const events:AgendaEvent[]=[];
   for(const o of s.obligations){
-    if(o.status==='cancelled'||!validDate(o.due))continue;
-    let occurrence=o.due,tries=0;
-    while(occurrence<=end && tries++<1200){
-      if(occurrence>=start){
-        events.push({
-          id:'obligation:'+o.id+':'+occurrence,
-          date:occurrence,kind:'scheduled',
-          status:o.paidDates.includes(occurrence)?'paid':'planned',
-          title:o.name,amount:o.amount,section:'obligations'
-        });
-      }
-      if(o.recurrence!=='monthly')break;
-      const next=F.nextMonth(occurrence,o.anchorDay??Number(o.due.slice(8)));
-      if(next<=occurrence)break;
-      occurrence=next;
+    for(const {date,original} of occurrences(o,start,end)){
+      const received=isIncomePlan(o),paid=o.paidDates.includes(original);
+      if(paid && s.operations.some(op=>op.obligationId===o.id && op.obligationDue===original))continue;
+      events.push({id:'obligation:'+o.id+':'+original,date,kind:received?'expectedIncome':'scheduled',
+        status:paid?'paid':'planned',title:o.name,amount:o.amount,variableAmount:o.variableAmount,section:received?'plannedIncome':'obligations'});
     }
   }
   for(const p of s.projects){
@@ -65,7 +57,7 @@ export function agendaEvents(s:F.State,month:string):AgendaEvent[]{
   }
   for(const raw of F.activeOperations(s)){
     const o=M.effective(s,raw);
-    if(!validDate(o.date)||o.date<start||o.date>end||o.obligationId)continue;
+    if(!validDate(o.date)||o.date<start||o.date>end)continue;
     if(o.kind==='income'){
       const incoming=F.sum(o.wallets.filter(e=>e.delta>0).map(e=>e.delta));
       if(incoming>0)events.push({id:'income:'+o.id,date:o.date,kind:'income',status:'recorded',title:o.label,amount:incoming,section:'history'});

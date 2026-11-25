@@ -8,11 +8,11 @@ import {agendaEvents,monthBounds,shiftMonth,type AgendaEvent} from '@/lib/agenda
 
 const weekdays=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const label:Record<AgendaEvent['kind'],string>={
-  payment:'Dépense enregistrée',income:'Revenu encaissé',scheduled:'Échéance',
+  payment:'Dépense enregistrée',income:'Revenu encaissé',scheduled:'Échéance',expectedIncome:'Entrée prévue',
   project:'Encaissement prévu',loan:'Prêt / remboursement prévu'
 };
 type Filter='all'|'planned'|'recorded';
-export default function FinancialAgenda({s,onNavigate}:{s:State;onNavigate:(view:'history'|'obligations'|'projects'|'loans')=>void}){
+export default function FinancialAgenda({s,onNavigate}:{s:State;onNavigate:(view:'history'|'obligations'|'plannedIncome'|'projects'|'loans')=>void}){
   const now=today();
   const [month,setMonth]=useState(now.slice(0,7));
   const [selected,setSelected]=useState<string|null>(null);
@@ -54,7 +54,7 @@ export default function FinancialAgenda({s,onNavigate}:{s:State;onNavigate:(view
           </button>;
         })}
       </div>
-      <div className="pk-agenda-legend"><span><i className="pk-agenda-dot pk-agenda-payment"/>Dépense</span><span><i className="pk-agenda-dot pk-agenda-income"/>Revenu</span><span><i className="pk-agenda-dot pk-agenda-scheduled"/>Échéance</span><span><i className="pk-agenda-dot pk-agenda-project"/>Projet</span><span><i className="pk-agenda-dot pk-agenda-loan"/>Prêt</span></div>
+      <div className="pk-agenda-legend"><span><i className="pk-agenda-dot pk-agenda-payment"/>Dépense</span><span><i className="pk-agenda-dot pk-agenda-income"/>Revenu</span><span><i className="pk-agenda-dot pk-agenda-scheduled"/>Échéance</span><span><i className="pk-agenda-dot pk-agenda-expectedIncome"/>Entrée prévue</span><span><i className="pk-agenda-dot pk-agenda-project"/>Projet</span><span><i className="pk-agenda-dot pk-agenda-loan"/>Prêt</span></div>
     </section>
     <section className="card pk-agenda-events">
       <div className="pk-agenda-events-head"><h2>{selected?'Le '+new Date(selected+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}):'Événements du mois'}</h2><span>{entries.length} élément{entries.length!==1?'s':''}</span></div>
@@ -62,7 +62,7 @@ export default function FinancialAgenda({s,onNavigate}:{s:State;onNavigate:(view
       {entries.length?entries.map(event=><div className="pk-agenda-event" key={event.id}>
         <div className={'pk-agenda-event-mark pk-agenda-'+event.kind}/>
         <div className="pk-agenda-event-content"><strong>{event.title}</strong><span>{event.date.split('-').reverse().join('/')} · {label[event.kind]} · {event.status==='recorded'?'Enregistré':event.status==='paid'?'Payé':'Prévision'}</span></div>
-        <div className="pk-agenda-event-end"><strong>{displayMoney(s,event.amount)}</strong><button className="link" type="button" onClick={()=>onNavigate(event.section)}>Voir</button></div>
+        <div className="pk-agenda-event-end"><strong>{event.variableAmount?'À préciser':displayMoney(s,event.amount)}</strong><button className="link" type="button" onClick={()=>onNavigate(event.section)}>Voir</button></div>
       </div>):<p className="pk-agenda-empty">Aucun événement pour cette sélection.</p>}
     </section>
   </div>;

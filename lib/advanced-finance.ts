@@ -1,4 +1,5 @@
 import * as F from './finance';
+import {isIncomePlan,isPending,occurrences} from './schedule';
 import { extra, patchExtra, effective, type Details, type Loan, type FeeModel } from './models';
 export type Part={amount:number;categoryId:string;fundId:string;beneficiary?:string;subcategory?:string;projectId?:string};
 export function annotate(s:F.State,id:string,details:Details):F.State{if(!s.operations.some(o=>o.id===id))throw new Error('Transaction introuvable.');const x=extra(s),next=patchExtra(s,{details:{...x.details,[id]:{...x.details[id],...details}}});F.validateState(next);return next;}
@@ -26,9 +27,17 @@ export function loanMovement(s:F.State,a:{loanId:string;action:'issue'|'repay';w
  if(incoming)op.receivedInterest=interest;else if(interest){const fund=a.interestFundId??'e-financial';op.funds.push({id:fund,delta:-interest});op.expenses=[{amount:interest,categoryId:F.FINANCIAL,fundId:fund,label:'Intérêts · '+loan.name,beneficiary:loan.person}];}
  if(a.reserveConfirmed)op.reserveAuthorized=true;return F.append(s,op);
 }
-export function forecast(s:F.State,horizon=30){const today=F.today(),end=new Date(today+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+horizon);const until=end.toISOString().slice(0,10),funds=F.balances(s,'funds');const obligations=s.obligations.filter(o=>o.status!=='cancelled'&&(o.recurrence==='monthly'||!o.paidDates.includes(o.due))&&o.due<=until);
+export function forecast(s:F.State,horizon=30){const today=F.today(),end=new Date(today+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+horizon);const until=end.toISOString().slice(0,10),funds=F.balances(s,'funds');const obligations=s.obligations.filter(o=>isPending(o)&&!isIncomePlan(o)&&!o.variableAmount);
  const rows:{id:string;name:string;date:string;amount:number;provision:number;unfunded:number;essential:boolean}[]=[];
- for(const o of obligations){let date=o.due,available=funds['o-'+o.id]??0,count=0;while(date<=until&&count++<120){if(!o.paidDates.includes(date)){const provision=Math.min(o.amount,available);rows.push({id:o.id+':'+date,name:o.name,date,amount:o.amount,provision,unfunded:o.amount-provision,essential:s.categories.find(c=>c.id===o.categoryId)?.essential??false});available-=provision;}if(o.recurrence!=='monthly')break;date=F.nextMonth(date,o.anchorDay??Number((o.paidDates[0]??o.due).slice(8)));}}
+ for(const o of obligations){
+   let available=funds['o-'+o.id]??0;
+   for(const {date,original} of occurrences(o,'',until)){
+     if(o.paidDates.includes(original))continue;
+     const provision=Math.min(o.amount,available);
+     rows.push({id:o.id+':'+original,name:o.name,date,amount:o.amount,provision,unfunded:o.amount-provision,essential:s.categories.find(c=>c.id===o.categoryId)?.essential??false});
+     available-=provision;
+   }
+ }
  for(const loan of extra(s).loans.filter(l=>l.direction==='borrowed'&&l.due&&l.due<=until)){const remaining=loanSummary(s,loan.id).remaining;if(!remaining)continue;const provision=Math.min(remaining,funds['l-'+loan.id]??0);rows.push({id:'loan:'+loan.id,name:loan.name,date:loan.due!,amount:remaining,provision,unfunded:remaining-provision,essential:true});}
  rows.sort((a,b)=>a.date.localeCompare(b.date));
  const t=F.summary(s),unfunded=F.sum(rows.map(r=>r.unfunded));return{rows,unfunded,freeAfterObligations:Math.max(0,t.usable-unfunded),gap:Math.max(0,unfunded-t.usable),planned:F.sum(rows.map(r=>r.amount)),funded:F.sum(rows.map(r=>r.provision))};
