@@ -14,3 +14,17 @@
 .pk-agenda-expectedIncome{background:#398570}
 .topbar .pk-alert-control:has(i){display:inline-flex}
 @media(max-width:550px){.plan-row .plan-actions{width:100%;justify-content:flex-end}.plan-description{flex-basis:55%}.plan-notifications .button{min-height:42px}}
+.forecast-projection{margin:1.25rem 0 .85rem}
+.forecast-projection>span,.forecast-totals dt,.forecast-totals small,.forecast-movements small{display:block;color:var(--muted)}
+.forecast-projection>strong{font-size:clamp(1.55rem,4vw,2.25rem);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.forecast-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(10rem,100%),1fr));gap:1rem;margin:0 0 1rem;padding:1rem 0;border-block:1px solid var(--border)}
+.forecast-totals dd{margin:.2rem 0;font-weight:600}
+.forecast-totals dd,.forecast-movements strong{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.forecast-movements{list-style:none;margin:0;padding:0}
+.forecast-movements li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:.8rem;padding:.7rem 0;border-bottom:1px solid var(--border)}
+.forecast-movements li:last-child{border-bottom:0}
+.forecast-movements li>div{min-width:0;overflow-wrap:anywhere}
+.forecast-movements li>div:last-child{text-align:end}
+.forecast-movements small,.forecast-totals small{font-size:calc(.78rem * var(--text-scale,1))}
+.forecast-incoming{color:#28705b}
+[data-theme=dark] .forecast-incoming{color:#9ad6bf}
