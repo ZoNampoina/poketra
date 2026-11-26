@@ -15,11 +15,41 @@ const {default:Poketra}=await import('../app/poketra');
 const {default:DecisionLab}=await import('../app/decision-lab');
 const {default:FinancialAgenda}=await import('../app/financial-agenda');
 const {default:PlanDialog}=await import('../app/plan-dialog');
+const {default:AdvancedPages}=await import('../app/advanced-pages');
+const {addDays}=await import('../lib/schedule');
 const {default:CurrencyConverter}=await import('../app/currency-converter');
 const {default:ContextHelp}=await import('../app/context-help');
 const {duplicateDraft}=await import('../app/record-detail');
 const {splitExpense}=await import('../lib/advanced-finance');
 function initial(){let s=upgrade(F.initialize(F.emptyState(),{cash:100000,mvola:200000}));s=F.allocate(s,F.UNASSIGNED,'e-essential',100000);return s;}
+test('Trésorerie intelligente : changer l’horizon inclut la rentrée chiffrée et garde les variables visibles', async()=>{
+  const day=F.today();
+  let s=F.addObligation(initial(),{name:'Prestation variable',direction:'income',due:day,amount:0,
+    variableAmount:true,categoryId:'other',recurrence:'once',walletId:'mvola'});
+  s=F.addObligation(s,{name:'Cachet de concert',direction:'income',due:addDays(day,45),amount:75000,
+    categoryId:'other',recurrence:'once',walletId:'orange'});
+  const props={s,page:'treasury',commit:async()=>assert.fail('La prévision doit rester en lecture seule'),busy:false,open:()=>{}};
+  const view=await mount(AdvancedPages,props);
+  const section=view.container.querySelector('.treasury-forecast')!;
+  const total=()=>section.querySelector('.forecast-projection strong')!.textContent;
+  assert.equal(total(),F.money(300000));
+  assert.ok(section.textContent!.includes('À préciser'));
+  assert.ok(!section.textContent!.includes('Cachet de concert'));
+  const select=section.querySelector('select')!;
+  await act(async()=>{select.value='90';select.dispatchEvent(new window.Event('change',{bubbles:true}) as any);});
+  assert.equal(total(),F.money(375000));
+  const moves=section.querySelector('[aria-label="Mouvements prévus"]')!;
+  assert.ok(moves.textContent!.includes('Cachet de concert'));
+  assert.ok(moves.textContent!.includes('Orange Money'));
+  assert.ok(moves.textContent!.includes('+'+F.money(75000)));
+  await view.close();
+  const masked=patchExtra(s,{preferences:{...upgrade(s).extra!.preferences,hideAmounts:true}});
+  const hidden=await mount(AdvancedPages,{...props,s:masked});
+  const card=hidden.container.querySelector('.treasury-forecast')!;
+  assert.ok(!card.textContent!.includes(F.money(300000)));
+  assert.ok(card.textContent!.includes('••••'));
+  await hidden.close();
+});
 test('La validation d’un revenu variable crée une seule écriture depuis le rappel',async()=>{
   const s=F.addObligation(initial(),{direction:'income',name:'Contrat',recurrence:'weekly',categoryId:'other',
     due:F.today(),walletId:'orange',variableAmount:true,amount:0});
